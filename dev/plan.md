@@ -7,7 +7,7 @@ The Python `skills-ref` library (at `agentskills/agentskills/skills-ref`) is a r
 ## Project Structure
 
 ```
-aigent-raku/
+aigent-skills/
 ├── META6.json                     # Raku module metadata & dependencies
 ├── lib/
 │   └── AIgent/

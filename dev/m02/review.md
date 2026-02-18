@@ -37,7 +37,7 @@
 
 1. Medium: README points to two different repos and includes a stale clone path.
    - `README.md:55`, `README.md:56`, and `README.md:135` still reference `raku-skills-ref`.
-   - `META6.json:7` and current `origin` use `aigent-raku`.
+   - `META6.json:7` and current `origin` use `aigent-skills`.
    - This can break onboarding and creates source-of-truth ambiguity.
 
 2. Medium: README documents `--about`, but CLI does not implement it.
@@ -83,7 +83,7 @@
 
 ### CR1 findings still open
 
-- CR1-1 (stale repo URLs): still present. Additional instances in README milestone table — lines 119, 121-126 use `raku-skills-ref` URLs while lines 120, 127 use `aigent-raku`.
+- CR1-1 (stale repo URLs): still present. Additional instances in README milestone table — lines 119, 121-126 use `raku-skills-ref` URLs while lines 120, 127 use `aigent-skills`.
 - CR1-2 (--about not implemented): still present, unchanged.
 - CR1-3 (Errors module namespace): still present, unchanged.
 
@@ -108,7 +108,7 @@
 - `just format` passes (no whitespace issues).
 - `just test` passes (Files=2, Tests=23).
 - Old `lib/Skills/` directory removed.
-- Remote is `git@github.com:wkusnierczyk/aigent-raku.git`.
+- Remote is `git@github.com:wkusnierczyk/aigent-skills.git`.
 
 ### Included commits
 

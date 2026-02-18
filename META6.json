@@ -2,9 +2,9 @@
   "name": "AIgent::Skill",
   "version": "0.0.1",
   "auth": "github:wkusnierczyk",
-  "description": "Raku AI Agent Skill Builder and Validator",
+  "description": "AI Agent Skill Builder and Validator",
   "license": "MIT",
-  "source-url": "https://github.com/wkusnierczyk/aigent-raku.git",
+  "source-url": "https://github.com/wkusnierczyk/aigent-skills.git",
   "perl": "6.d",
   "provides": {
     "AIgent::Skill": "lib/AIgent/Skill.rakumod",

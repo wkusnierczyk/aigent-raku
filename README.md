@@ -4,6 +4,24 @@ A Raku library and CLI tool for managing AI agent skill definitions. Validates, 
 
 This is a Raku port of the Python [skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref) reference implementation by Anthropic, extended with a skill builder module.
 
+## About
+
+```
+Skills::Ref: Raku AI Agent Skills Tool
+├─ version:    0.0.1
+├─ developer:  mailto:waclaw.kusnierczyk@gmail.com
+├─ source:     https://github.com/wkusnierczyk/raku-skills-ref
+└─ licence:    MIT https://opensource.org/licenses/MIT
+```
+
+## Table of Contents
+
+- [About](#about)
+- [Status](#status)
+- [References](#references)
+- [Development Plan](#development-plan)
+- [License](#license)
+
 ## Status
 
 **Planning complete. Implementation not yet started.**
@@ -30,10 +48,10 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 | M3 | Parser | 2026-02-21 | [#8](https://github.com/wkusnierczyk/raku-skills-ref/issues/8), [#9](https://github.com/wkusnierczyk/raku-skills-ref/issues/9) |
 | M4 | Validator | 2026-02-22 | [#10](https://github.com/wkusnierczyk/raku-skills-ref/issues/10), [#11](https://github.com/wkusnierczyk/raku-skills-ref/issues/11) |
 | M5 | Prompt Generation | 2026-02-23 | [#12](https://github.com/wkusnierczyk/raku-skills-ref/issues/12), [#13](https://github.com/wkusnierczyk/raku-skills-ref/issues/13) |
-| M6 | CLI | 2026-02-24 | [#14](https://github.com/wkusnierczyk/raku-skills-ref/issues/14), [#15](https://github.com/wkusnierczyk/raku-skills-ref/issues/15) |
+| M6 | CLI | 2026-02-24 | [#14](https://github.com/wkusnierczyk/raku-skills-ref/issues/14), [#15](https://github.com/wkusnierczyk/raku-skills-ref/issues/15), [#26](https://github.com/wkusnierczyk/raku-skills-ref/issues/26) |
 | M7 | Skill Builder | 2026-02-25 | [#16](https://github.com/wkusnierczyk/raku-skills-ref/issues/16), [#17](https://github.com/wkusnierczyk/raku-skills-ref/issues/17), [#18](https://github.com/wkusnierczyk/raku-skills-ref/issues/18), [#19](https://github.com/wkusnierczyk/raku-skills-ref/issues/19) |
 | M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/raku-skills-ref/issues/20), [#21](https://github.com/wkusnierczyk/raku-skills-ref/issues/21), [#24](https://github.com/wkusnierczyk/raku-skills-ref/issues/24), [#25](https://github.com/wkusnierczyk/raku-skills-ref/issues/25) |
 
 ## License
 
-MIT
+[MIT](LICENSE) — see [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)

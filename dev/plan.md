@@ -107,6 +107,7 @@ raku-skills-ref/
   - Smart path handling: if path points to a SKILL.md file, resolve to parent dir
   - `USAGE` sub for help text
 - **#15 Write CLI integration tests** — Test CLI invocations via `run` or `Proc::Async`, verify exit codes and output.
+- **#26 Add --about CLI option** — Print project stanza (version, developer, source, licence) read from META6.json at runtime.
 
 ### M7: Skill Builder
 > Natural language interface for creating complete skill directories from user specifications.

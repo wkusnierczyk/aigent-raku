@@ -74,8 +74,11 @@ After `just setup`, the following hooks are active:
 just setup              # install deps + lefthook + hooks
 just install            # install module locally (zef install .)
 just test               # run test suite
-just lint               # syntax check (raku -c) all source files
-just format             # alias for lint (Raku lacks a standalone formatter)
+just lint               # run lint-syntax + lint-meta
+just lint-syntax        # compile-check all source files (raku -c)
+just lint-meta          # validate META6.json required fields
+just format             # whitespace scan (tabs, trailing spaces)
+just format-fix         # remove trailing whitespace from sources/tests
 just version            # print current version
 just version-set 0.1.0  # set version explicitly
 just bump-patch         # 0.0.1 → 0.0.2
@@ -88,6 +91,8 @@ just bump-major         # 0.0.1 → 1.0.0
 Raku does not have a mature equivalent of Python's `ruff`. We use:
 
 - **`raku -c`** — syntax checking (compile without running), applied to all `.rakumod` and `.raku` files
+- **META6.json validation** — checks that required fields (`name`, `version`, `provides`) are present
+- **Whitespace checks** — warns about tabs and trailing whitespace; `just format-fix` removes trailing whitespace
 
 These checks run both locally (via lefthook pre-commit hook) and in CI (GitHub Actions).
 

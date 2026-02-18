@@ -1,9 +1,10 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# Source file globs
-lib_files := `find lib -name '*.rakumod'`
+# Source file globs (use raku for cross-platform — find is Unix-only)
+lib_files := `raku -MJSON::Fast -e '.put for from-json(slurp "META6.json")<provides>.values'`
 src_files := lib_files + " bin/aigent"
-all_files := src_files + " " + `find t -name '*.rakumod' -o -name '*.rakutest' 2>/dev/null || true`
+test_files := `raku -e '.put for ("t".IO.d ?? "t".IO.dir.grep(*.extension eq any("rakumod","rakutest")) !! ())'`
+all_files := src_files + " " + test_files
 
 # ─── Setup & Install ──────────────────────────────────────────────────
 

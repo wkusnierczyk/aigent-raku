@@ -17,6 +17,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,6 +47,7 @@ jobs:
 
       - name: Install just (Windows)
         if: runner.os == 'Windows'
+        shell: powershell
         run: choco install just -y
 
       - name: Install dependencies

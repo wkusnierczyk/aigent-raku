@@ -1,0 +1,18 @@
+pre-commit:
+  commands:
+    syntax-check:
+      glob: "**/*.{rakumod,raku,rakutest}"
+      run: |
+        for f in {staged_files}; do
+          raku -Ilib -c "$f" || exit 1
+        done
+    syntax-check-bin:
+      glob: "bin/aigent"
+      run: raku -Ilib -c {staged_files}
+
+pre-push:
+  commands:
+    lint:
+      run: just lint
+    test:
+      run: just test

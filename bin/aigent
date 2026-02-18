@@ -1,0 +1,20 @@
+#!/usr/bin/env raku
+
+use lib 'lib';
+
+proto MAIN(|) is export {*}
+
+multi MAIN('--help') {
+    USAGE();
+}
+
+sub USAGE() {
+    say "Usage: aigent <command> [options]";
+    say "";
+    say "Commands:";
+    say "  validate <dir>         Validate a skill directory";
+    say "  read-properties <dir>  Read skill properties as JSON";
+    say "  to-prompt <dir>...     Generate XML prompt from skill directories";
+    say "  build <purpose>        Build a new skill from natural language";
+    say "  init [dir]             Scaffold a new skill directory";
+}

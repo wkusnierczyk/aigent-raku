@@ -1,7 +1,14 @@
-# Gitignore for Raku (https://raku.org)
-# As part of https://github.com/github/gitignore
+# Raku
+.precomp/
+lib/.precomp/
+*.rakutest.out
 
-# precompiled files
-.precomp
-lib/.precomp
+# Editor
+*~
+*.swp
+.idea/
+.vscode/
 
+# OS
+.DS_Store
+Thumbs.db

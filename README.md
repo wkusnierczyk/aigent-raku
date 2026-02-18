@@ -14,7 +14,7 @@ This is a Raku port of the Python [skills-ref](https://github.com/agentskills/ag
 
 ## Status
 
-**Planning complete. Implementation not yet started.**
+**M1 (Project Scaffolding) complete. M2 (Core Data Model & Errors) in progress.**
 
 See the [development plan](dev/plan.md) for full details.
 
@@ -117,13 +117,14 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 | # | Milestone | Due | Issues |
 |---|-----------|-----|--------|
 | M1 | Project Scaffolding | 2026-02-19 | [#1](https://github.com/wkusnierczyk/raku-skills-ref/issues/1), [#2](https://github.com/wkusnierczyk/raku-skills-ref/issues/2), [#3](https://github.com/wkusnierczyk/raku-skills-ref/issues/3), [#4](https://github.com/wkusnierczyk/raku-skills-ref/issues/4), [#23](https://github.com/wkusnierczyk/raku-skills-ref/issues/23), [#27](https://github.com/wkusnierczyk/raku-skills-ref/issues/27), [#28](https://github.com/wkusnierczyk/raku-skills-ref/issues/28), [#29](https://github.com/wkusnierczyk/raku-skills-ref/issues/29) |
-| M2 | Core Data Model & Errors | 2026-02-20 | [#5](https://github.com/wkusnierczyk/raku-skills-ref/issues/5), [#6](https://github.com/wkusnierczyk/raku-skills-ref/issues/6), [#7](https://github.com/wkusnierczyk/raku-skills-ref/issues/7) |
+| M2 | Core Data Model & Errors | 2026-02-20 | [#33](https://github.com/wkusnierczyk/aigent-raku/issues/33), [#5](https://github.com/wkusnierczyk/aigent-raku/issues/5), [#6](https://github.com/wkusnierczyk/aigent-raku/issues/6), [#7](https://github.com/wkusnierczyk/aigent-raku/issues/7) |
 | M3 | Parser | 2026-02-21 | [#8](https://github.com/wkusnierczyk/raku-skills-ref/issues/8), [#9](https://github.com/wkusnierczyk/raku-skills-ref/issues/9) |
 | M4 | Validator | 2026-02-22 | [#10](https://github.com/wkusnierczyk/raku-skills-ref/issues/10), [#11](https://github.com/wkusnierczyk/raku-skills-ref/issues/11) |
 | M5 | Prompt Generation | 2026-02-23 | [#12](https://github.com/wkusnierczyk/raku-skills-ref/issues/12), [#13](https://github.com/wkusnierczyk/raku-skills-ref/issues/13) |
 | M6 | CLI | 2026-02-24 | [#14](https://github.com/wkusnierczyk/raku-skills-ref/issues/14), [#15](https://github.com/wkusnierczyk/raku-skills-ref/issues/15), [#26](https://github.com/wkusnierczyk/raku-skills-ref/issues/26) |
 | M7 | Skill Builder | 2026-02-25 | [#16](https://github.com/wkusnierczyk/raku-skills-ref/issues/16), [#17](https://github.com/wkusnierczyk/raku-skills-ref/issues/17), [#18](https://github.com/wkusnierczyk/raku-skills-ref/issues/18), [#19](https://github.com/wkusnierczyk/raku-skills-ref/issues/19) |
-| M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/raku-skills-ref/issues/20), [#21](https://github.com/wkusnierczyk/raku-skills-ref/issues/21), [#24](https://github.com/wkusnierczyk/raku-skills-ref/issues/24), [#25](https://github.com/wkusnierczyk/raku-skills-ref/issues/25) |
+| M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/aigent-raku/issues/20), [#21](https://github.com/wkusnierczyk/aigent-raku/issues/21), [#24](https://github.com/wkusnierczyk/aigent-raku/issues/24), [#25](https://github.com/wkusnierczyk/aigent-raku/issues/25) |
+| M9 | Claude Code Plugin | 2026-02-27 | [#34](https://github.com/wkusnierczyk/aigent-raku/issues/34), [#35](https://github.com/wkusnierczyk/aigent-raku/issues/35), [#38](https://github.com/wkusnierczyk/aigent-raku/issues/38), [#36](https://github.com/wkusnierczyk/aigent-raku/issues/36), [#37](https://github.com/wkusnierczyk/aigent-raku/issues/37) |
 
 ## About and License
 

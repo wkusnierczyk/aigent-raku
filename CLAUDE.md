@@ -59,10 +59,10 @@ Use this body format:
 ```markdown
 ## Summary
 - Description of first change
-  #N
+  Closes #N
 - Description of second change
-  #N
-  #M
+  Closes #N
+  Closes #M
 
 ## Test plan
 - [ ] Check item 1
@@ -73,5 +73,5 @@ Use this body format:
 
 Rules:
 - Description on the first line, issue refs on subsequent lines (two trailing spaces for line break)
-- Each issue on its own line — just `#N`, no `See` prefix, no parentheses
+- Each issue on its own line — `Closes #N` for auto-closing on merge
 - Never combine multiple issues on one line

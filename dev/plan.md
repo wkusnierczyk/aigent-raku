@@ -140,6 +140,15 @@ The Builder accepts natural language descriptions of what a skill should do, and
 - **#24 Add GitHub Actions release workflow** — `.github/workflows/release.yml`: trigger on tag push (`v*`), run tests, create GitHub Release, publish to Raku ecosystem (zef).
 - **#25 Add CHANGES.md** — Changelog tracking notable changes per version, starting with v0.1.0. Referenced by the release workflow for GitHub Release notes.
 
+### M9: Claude Code Plugin
+> Claude Code plugin/skill that uses aigent to create agent skills from within Claude Code.
+
+- **#34 Create aigent-builder Claude Code skill** — `.claude/skills/aigent-builder/SKILL.md`. Hybrid: uses `aigent build` when available, falls back to prompt-only generation without it. Depends on M7.
+- **#35 Create aigent-validator Claude Code skill** — `.claude/skills/aigent-validator/SKILL.md`. Hybrid: uses `aigent validate` when available, falls back to Claude-based spec checking. Depends on M6.
+- **#38 Build standalone aigent binary for release** — Standalone binary for macOS/Linux so plugin users don't need Raku installed. Integrated into release workflow (#24).
+- **#36 Package as Claude Code plugin** — Bundle skills into a distributable plugin with `.claude-plugin/plugin.json` manifest. Documents install options: standalone binary, zef, or prompt-only fallback. Depends on #34, #35, #38.
+- **#37 Write tests for Claude Code plugin** — Frontmatter validation, manifest checks, integration tests for both hybrid modes. Depends on #34, #35, #36.
+
 ---
 
 ## Milestone Dependencies
@@ -153,12 +162,17 @@ M1 (Scaffolding)
       └─> M4 (Validator)
            └─> M6 (CLI)
                 └─> M7 (Builder) ─> M8 (Docs)
+                                      └─> M9 (Plugin)
 ```
 
 M7 (Builder) depends on M2 (Models), M4 (Validator), and M6 (CLI) because it:
 - Uses SkillProperties from Models
 - Validates generated output via Validator
 - Extends the CLI with new subcommands
+
+M9 (Plugin) depends on M7 (Builder) and M6 (CLI) because it:
+- Wraps `aigent build` (from M7) as a Claude Code skill
+- Wraps `aigent validate` (from M6) as a Claude Code skill
 
 ## Verification
 

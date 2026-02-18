@@ -1,0 +1,35 @@
+{
+  "name": "Skills::Ref",
+  "version": "0.0.1",
+  "auth": "github:wkusnierczyk",
+  "description": "Raku AI Agent Skill Builder and Validator",
+  "license": "MIT",
+  "source-url": "https://github.com/wkusnierczyk/raku-skills-ref.git",
+  "perl": "6.d",
+  "provides": {
+    "Skills::Ref": "lib/Skills/Ref.rakumod",
+    "Skills::Ref::Errors": "lib/Skills/Ref/Errors.rakumod",
+    "Skills::Ref::Models": "lib/Skills/Ref/Models.rakumod",
+    "Skills::Ref::Parser": "lib/Skills/Ref/Parser.rakumod",
+    "Skills::Ref::Prompt": "lib/Skills/Ref/Prompt.rakumod",
+    "Skills::Ref::Validator": "lib/Skills/Ref/Validator.rakumod",
+    "Skills::Ref::Builder": "lib/Skills/Ref/Builder.rakumod"
+  },
+  "depends": [
+    "YAMLish",
+    "JSON::Fast"
+  ],
+  "test-depends": [
+    "Test::Async"
+  ],
+  "bin": {
+    "aigent": "bin/aigent"
+  },
+  "tags": [
+    "raku",
+    "ai",
+    "agentic-ai",
+    "agent-skills",
+    "skills"
+  ]
+}

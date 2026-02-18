@@ -60,6 +60,7 @@ raku-skills-ref/
 - **#2 Create CLAUDE.md** — Dev workflow: how to run tests (`raku -I. -e 'run <prove6 -I. -l t/>'` or `zef test .`), lint, etc.
 - **#3 Update .gitignore** — Add `.precomp/`, `lib/.precomp/`, and any other Raku artifacts.
 - **#4 Create stub module files** — Empty `lib/Skills/Ref.rakumod` and submodules, `bin/skills-ref` stub.
+- **#23 Add GitHub Actions CI workflow** — `.github/workflows/ci.yml`: trigger on push to main and PRs, set up Raku, install deps, run tests.
 
 ### M2: Core Data Model & Errors
 > Implement the exception hierarchy and the SkillProperties model.
@@ -130,6 +131,7 @@ The Builder accepts natural language descriptions of what a skill should do, and
 
 - **#20 Implement main module exports** — `Skills::Ref` re-exports: `find-skill-md`, `read-properties`, `parse-frontmatter`, `validate`, `validate-metadata`, `to-prompt`, `build-skill`, `SkillProperties`, `SkillSpec`, `BuildResult`, all exception classes.
 - **#21 Update README.md** — Usage examples, installation, API reference, CLI docs (including builder commands).
+- **#24 Add GitHub Actions release workflow** — `.github/workflows/release.yml`: trigger on tag push (`v*`), run tests, create GitHub Release, publish to Raku ecosystem (zef).
 
 ---
 

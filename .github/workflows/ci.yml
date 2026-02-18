@@ -37,7 +37,9 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
       - name: Install dependencies
-        run: zef install --deps-only . --/test
+        run: |
+          zef install --deps-only . --/test
+          zef install App::Prove6 --/test
 
       - name: Lint
         run: just lint

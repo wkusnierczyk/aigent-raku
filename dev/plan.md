@@ -20,7 +20,7 @@ raku-skills-ref/
 │           ├── Validator.rakumod  # validate, validate-metadata
 │           └── Builder.rakumod    # Skill creation from natural language specs
 ├── bin/
-│   └── skills-ref                 # CLI entry point (multi MAIN)
+│   └── aigent                     # CLI entry point (multi MAIN)
 ├── t/
 │   ├── 01-errors.rakutest
 │   ├── 02-models.rakutest
@@ -61,7 +61,7 @@ raku-skills-ref/
 - **#1 Create META6.json** — Module metadata with name, version, auth, dependencies (YAMLish, JSON::Fast, Test::Async), provides map, and bin entry.
 - **#2 Create CLAUDE.md** — Dev workflow: how to run tests (`raku -I. -e 'run <prove6 -I. -l t/>'` or `zef test .`), lint, etc.
 - **#3 Update .gitignore** — Add `.precomp/`, `lib/.precomp/`, and any other Raku artifacts.
-- **#4 Create stub module files** — Empty `lib/Skills/Ref.rakumod` and submodules, `bin/skills-ref` stub.
+- **#4 Create stub module files** — Empty `lib/Skills/Ref.rakumod` and submodules, `bin/aigent` stub.
 - **#23 Add GitHub Actions CI workflow** — `.github/workflows/ci.yml`: trigger on push to main and PRs, set up Raku, install deps, run tests.
 - **#27 Add justfile with dev workflow targets** — Command runner with targets: `test`, `lint`, `format`, `version`, `version-set`, `bump-{patch,minor,major}`. Version lives exclusively in META6.json. (We considered `App::Mi6` but rejected it — it only provides `new/build/test/release/version` with no support for formatting, linting, custom targets, or any extension mechanism.)
 - **#28 Add lefthook configuration** — `lefthook.yml` with pre-commit (lint via `raku -c`) and pre-push (test + compile check) hooks.
@@ -105,7 +105,7 @@ raku-skills-ref/
 ### M6: CLI
 > Command-line interface with three subcommands.
 
-- **#14 Implement CLI** — `bin/skills-ref` using `multi MAIN`:
+- **#14 Implement CLI** — `bin/aigent` using `multi MAIN`:
   - `MAIN('validate', $skill-dir)` — validate and exit 0/1
   - `MAIN('read-properties', $skill-dir)` — output JSON (via JSON::Fast)
   - `MAIN('to-prompt', *@skill-dirs)` — output XML
@@ -127,7 +127,7 @@ The Builder accepts natural language descriptions of what a skill should do, and
   - `generate-body(SkillSpec $spec --> Str)` — generates the markdown body (skill instructions/prompt content) from the spec.
   - `assess-clarity(Str $purpose --> Hash)` — evaluates whether a one-liner purpose description is sufficiently clear to generate a skill, or whether clarifying questions are needed. Returns a hash with `:clear` (Bool) and `:questions` (list of clarifying questions if not clear).
   - Post-creation validation: after writing files, runs `validate()` and reports any issues.
-- **#18 Add Builder CLI subcommands** — Extend `bin/skills-ref` with:
+- **#18 Add Builder CLI subcommands** — Extend `bin/aigent` with:
   - `MAIN('build', Str $purpose, :$name, :$dir, :$license, :$compatibility, :$allowed-tools)` — starts from the one-liner purpose. Assesses clarity: if clear enough, generates the full skill autonomously; if ambiguous, enters a Q&A loop asking clarifying questions until the spec is sufficient, then generates. Optional flags provide overrides to skip questions. Generates full SKILL.md with frontmatter and prompt body.
   - `MAIN('init', Str $dir?)` — minimal scaffolding: creates a directory with a template SKILL.md for manual editing.
 - **#19 Write Builder tests** — `t/06-builder.rakutest`: test name derivation, frontmatter generation, full build pipeline (creates valid directory), validation of generated output, edge cases (long descriptions, special characters in purpose).
@@ -165,7 +165,7 @@ M7 (Builder) depends on M2 (Models), M4 (Validator), and M6 (CLI) because it:
 1. **Unit tests**: `prove6 -I. -l t/` — all tests pass
 2. **CLI smoke test**:
    - Create a sample skill directory with a valid SKILL.md
-   - Run `raku -I. bin/skills-ref validate /path/to/skill` → exit 0
-   - Run `raku -I. bin/skills-ref read-properties /path/to/skill` → valid JSON
-   - Run `raku -I. bin/skills-ref to-prompt /path/to/skill` → valid XML
+   - Run `raku -I. bin/aigent validate /path/to/skill` → exit 0
+   - Run `raku -I. bin/aigent read-properties /path/to/skill` → valid JSON
+   - Run `raku -I. bin/aigent to-prompt /path/to/skill` → valid XML
 3. **Module install**: `zef install .` succeeds

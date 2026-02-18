@@ -1,4 +1,4 @@
-# Raku AI Agent Skill Builder and Validator
+# `aigent`: Raku AI Agent Skill Builder and Validator
 
 A Raku library and CLI tool for managing AI agent skill definitions. Validates, parses, and generates prompts from skill metadata stored in `SKILL.md` files with YAML frontmatter. Also provides a skill builder for creating new skills from natural language specifications.
 
@@ -128,7 +128,7 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 ## About and License
 
 ```
-Skills::Ref: Raku AI Agent Skills Tool
+aigent: Raku AI Agent Skill Builder and Validator
 ├─ version:    0.0.1
 ├─ developer:  mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:     https://github.com/wkusnierczyk/raku-skills-ref

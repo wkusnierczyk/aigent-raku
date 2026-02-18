@@ -4,7 +4,7 @@ use AIgent::Skill::Parser;
 use AIgent::Skill::Errors;
 use AIgent::Skill::Models;
 
-plan 17;
+plan 21;
 
 # --- Helper: create a temp directory ---
 

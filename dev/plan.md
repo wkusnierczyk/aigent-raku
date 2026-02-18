@@ -28,6 +28,8 @@ raku-skills-ref/
 │   ├── 04-validator.rakutest
 │   ├── 05-prompt.rakutest
 │   └── 06-builder.rakutest
+├── justfile                       # Command runner (test, lint, format, version, bump)
+├── lefthook.yml                   # Git hooks (pre-commit: lint, pre-push: test)
 ├── CLAUDE.md
 ├── LICENSE                        # (exists)
 ├── README.md                      # (exists, update)
@@ -61,7 +63,9 @@ raku-skills-ref/
 - **#3 Update .gitignore** — Add `.precomp/`, `lib/.precomp/`, and any other Raku artifacts.
 - **#4 Create stub module files** — Empty `lib/Skills/Ref.rakumod` and submodules, `bin/skills-ref` stub.
 - **#23 Add GitHub Actions CI workflow** — `.github/workflows/ci.yml`: trigger on push to main and PRs, set up Raku, install deps, run tests.
-- **#27 Add version management via mi6** — Version lives exclusively in META6.json. Use `mi6 version` to check and `mi6 version --set=x.y.z` to set.
+- **#27 Add justfile with dev workflow targets** — Command runner with targets: `test`, `lint`, `format`, `version`, `version-set`, `bump-{patch,minor,major}`. Version lives exclusively in META6.json. (We considered `App::Mi6` but rejected it — it only provides `new/build/test/release/version` with no support for formatting, linting, custom targets, or any extension mechanism.)
+- **#28 Add lefthook configuration** — `lefthook.yml` with pre-commit (lint via `raku -c`) and pre-push (test + compile check) hooks.
+- **#29 Add lint checks to CI workflow** — Extend CI (#23) with `raku -c` compile check on all source files before running tests.
 
 ### M2: Core Data Model & Errors
 > Implement the exception hierarchy and the SkillProperties model.

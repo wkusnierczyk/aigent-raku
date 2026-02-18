@@ -19,6 +19,7 @@ Skills::Ref: Raku AI Agent Skills Tool
 - [About](#about)
 - [Status](#status)
 - [References](#references)
+- [Development](#development)
 - [Development Plan](#development-plan)
 - [License](#license)
 
@@ -35,6 +36,103 @@ See the [development plan](dev/plan.md) for full details.
 - [anthropics/skills](https://github.com/anthropics/skills) — Anthropic's skills repository
 - [openai/skills](https://github.com/openai/skills) — OpenAI's skills repository
 
+## Development
+
+### Prerequisites
+
+- [Rakudo](https://rakudo.org/) (latest release)
+- [zef](https://github.com/ugexe/zef) (Raku module manager)
+- [Just](https://github.com/casey/just) (command runner)
+- [Lefthook](https://github.com/evilmartians/lefthook) (git hooks manager)
+
+### Setup
+
+```bash
+git clone git@github.com:wkusnierczyk/raku-skills-ref.git
+cd raku-skills-ref
+zef install --deps-only .
+lefthook install
+```
+
+### Installing Just
+
+[Just](https://github.com/casey/just) is the project's command runner, providing targets for testing, linting, formatting, and versioning.
+
+```bash
+# macOS
+brew install just
+
+# or via cargo
+cargo install just
+
+# or download from https://github.com/casey/just/releases
+```
+
+> **Why Just and not mi6?** We initially considered [App::Mi6](https://github.com/skaji/mi6) (Raku's standard module authoring tool), but it proved too limited: mi6 only provides `new`, `build`, `test`, `release`, and `version` commands. It has no support for formatting, linting, or custom targets, and no extension mechanism to add them. Since we need `lint`, `format`, `bump-*`, and other dev workflow targets, mi6 was not a viable build system for this project. We use Just instead, which provides full control over all development tasks.
+
+### Installing Lefthook
+
+[Lefthook](https://github.com/evilmartians/lefthook) manages git hooks for pre-commit and pre-push checks. Install it before contributing:
+
+```bash
+# macOS
+brew install lefthook
+
+# or via npm
+npm install -g @evilmartians/lefthook
+
+# or download from https://github.com/evilmartians/lefthook/releases
+```
+
+After installing, run `lefthook install` in the repo root. This sets up:
+
+- **pre-commit**: format and lint (`just lint`)
+- **pre-push**: test and build (`just test`)
+
+### Common Tasks
+
+```bash
+# Run tests
+just test
+
+# Lint (compile check)
+just lint
+
+# Format (compile check — Raku lacks a standalone formatter)
+just format
+
+# Check current version
+just version
+
+# Set version
+just version-set 0.1.0
+
+# Bump version
+just bump-patch   # 0.0.1 → 0.0.2
+just bump-minor   # 0.0.1 → 0.1.0
+just bump-major   # 0.0.1 → 1.0.0
+```
+
+### Formatting and Linting
+
+Raku does not have a mature equivalent of Python's `ruff`. We use:
+
+- **`raku -c`** — syntax checking (compile without running), applied to all `.rakumod` and `.raku` files
+
+These checks run both locally (via lefthook pre-commit hook) and in CI (GitHub Actions).
+
+### Versioning
+
+Version is stored exclusively in `META6.json` — the single source of truth. It is not duplicated anywhere in source code. The `--about` CLI option reads it at runtime.
+
+```bash
+just version          # print current version
+just version-set 0.1.0  # set version explicitly
+just bump-patch       # 0.0.1 → 0.0.2
+just bump-minor       # 0.0.1 → 0.1.0
+just bump-major       # 0.0.1 → 1.0.0
+```
+
 ## Development Plan
 
 The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and issues are tracked in the [Raku Skills](https://github.com/users/wkusnierczyk/projects/38) GitHub project.
@@ -43,7 +141,7 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 
 | # | Milestone | Due | Issues |
 |---|-----------|-----|--------|
-| M1 | Project Scaffolding | 2026-02-19 | [#1](https://github.com/wkusnierczyk/raku-skills-ref/issues/1), [#2](https://github.com/wkusnierczyk/raku-skills-ref/issues/2), [#3](https://github.com/wkusnierczyk/raku-skills-ref/issues/3), [#4](https://github.com/wkusnierczyk/raku-skills-ref/issues/4), [#23](https://github.com/wkusnierczyk/raku-skills-ref/issues/23), [#27](https://github.com/wkusnierczyk/raku-skills-ref/issues/27) |
+| M1 | Project Scaffolding | 2026-02-19 | [#1](https://github.com/wkusnierczyk/raku-skills-ref/issues/1), [#2](https://github.com/wkusnierczyk/raku-skills-ref/issues/2), [#3](https://github.com/wkusnierczyk/raku-skills-ref/issues/3), [#4](https://github.com/wkusnierczyk/raku-skills-ref/issues/4), [#23](https://github.com/wkusnierczyk/raku-skills-ref/issues/23), [#27](https://github.com/wkusnierczyk/raku-skills-ref/issues/27), [#28](https://github.com/wkusnierczyk/raku-skills-ref/issues/28), [#29](https://github.com/wkusnierczyk/raku-skills-ref/issues/29) |
 | M2 | Core Data Model & Errors | 2026-02-20 | [#5](https://github.com/wkusnierczyk/raku-skills-ref/issues/5), [#6](https://github.com/wkusnierczyk/raku-skills-ref/issues/6), [#7](https://github.com/wkusnierczyk/raku-skills-ref/issues/7) |
 | M3 | Parser | 2026-02-21 | [#8](https://github.com/wkusnierczyk/raku-skills-ref/issues/8), [#9](https://github.com/wkusnierczyk/raku-skills-ref/issues/9) |
 | M4 | Validator | 2026-02-22 | [#10](https://github.com/wkusnierczyk/raku-skills-ref/issues/10), [#11](https://github.com/wkusnierczyk/raku-skills-ref/issues/11) |

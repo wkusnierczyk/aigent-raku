@@ -32,7 +32,7 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 | M5 | Prompt Generation | 2026-02-23 | [#12](https://github.com/wkusnierczyk/raku-skills-ref/issues/12), [#13](https://github.com/wkusnierczyk/raku-skills-ref/issues/13) |
 | M6 | CLI | 2026-02-24 | [#14](https://github.com/wkusnierczyk/raku-skills-ref/issues/14), [#15](https://github.com/wkusnierczyk/raku-skills-ref/issues/15) |
 | M7 | Skill Builder | 2026-02-25 | [#16](https://github.com/wkusnierczyk/raku-skills-ref/issues/16), [#17](https://github.com/wkusnierczyk/raku-skills-ref/issues/17), [#18](https://github.com/wkusnierczyk/raku-skills-ref/issues/18), [#19](https://github.com/wkusnierczyk/raku-skills-ref/issues/19) |
-| M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/raku-skills-ref/issues/20), [#21](https://github.com/wkusnierczyk/raku-skills-ref/issues/21), [#24](https://github.com/wkusnierczyk/raku-skills-ref/issues/24) |
+| M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/raku-skills-ref/issues/20), [#21](https://github.com/wkusnierczyk/raku-skills-ref/issues/21), [#24](https://github.com/wkusnierczyk/raku-skills-ref/issues/24), [#25](https://github.com/wkusnierczyk/raku-skills-ref/issues/25) |
 
 ## License
 

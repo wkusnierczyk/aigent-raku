@@ -132,6 +132,7 @@ The Builder accepts natural language descriptions of what a skill should do, and
 - **#20 Implement main module exports** — `Skills::Ref` re-exports: `find-skill-md`, `read-properties`, `parse-frontmatter`, `validate`, `validate-metadata`, `to-prompt`, `build-skill`, `SkillProperties`, `SkillSpec`, `BuildResult`, all exception classes.
 - **#21 Update README.md** — Usage examples, installation, API reference, CLI docs (including builder commands).
 - **#24 Add GitHub Actions release workflow** — `.github/workflows/release.yml`: trigger on tag push (`v*`), run tests, create GitHub Release, publish to Raku ecosystem (zef).
+- **#25 Add CHANGES.md** — Changelog tracking notable changes per version, starting with v0.1.0. Referenced by the release workflow for GitHub Release notes.
 
 ---
 

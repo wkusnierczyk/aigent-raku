@@ -1,0 +1,73 @@
+use Test;
+use lib 'lib';
+use AIgent::Skill::Errors;
+
+plan 11;
+
+# --- X::AIgent::Skill (base) ---
+
+{
+    my $ex = X::AIgent::Skill.new(:message('something broke'));
+    isa-ok $ex, Exception, 'X::AIgent::Skill isa Exception';
+    is $ex.message, 'something broke', '.message returns the message string';
+}
+
+{
+    dies-ok { X::AIgent::Skill.new(:message('boom')).throw },
+        'X::AIgent::Skill can be thrown';
+}
+
+# --- X::AIgent::Skill::Parse ---
+
+{
+    my $ex = X::AIgent::Skill::Parse.new(:message('bad yaml'));
+    isa-ok $ex, X::AIgent::Skill, 'Parse isa X::AIgent::Skill';
+    is $ex.message, 'bad yaml', 'Parse .message returns the message string';
+}
+
+{
+    my $caught = False;
+    try {
+        X::AIgent::Skill::Parse.new(:message('parse error')).throw;
+        CATCH {
+            when X::AIgent::Skill {
+                $caught = True;
+            }
+        }
+    }
+    ok $caught, 'Parse can be caught as X::AIgent::Skill';
+}
+
+# --- X::AIgent::Skill::Validation ---
+
+{
+    my $ex = X::AIgent::Skill::Validation.new(:errors['name too long']);
+    isa-ok $ex, X::AIgent::Skill, 'Validation isa X::AIgent::Skill';
+    is-deeply $ex.errors.List, ('name too long',), '.errors returns the error list';
+}
+
+{
+    my $ex = X::AIgent::Skill::Validation.new(:errors['single error']);
+    is $ex.message, 'single error', '.message formats single error without prefix';
+}
+
+{
+    my $ex = X::AIgent::Skill::Validation.new(:errors['bad name', 'too long']);
+    is $ex.message,
+        "Validation failed:\n  - bad name\n  - too long",
+        '.message formats multiple errors with bullet list';
+}
+
+# --- CATCH block by type ---
+
+{
+    my $type = '';
+    try {
+        X::AIgent::Skill::Validation.new(:errors['oops']).throw;
+        CATCH {
+            when X::AIgent::Skill::Validation { $type = 'validation' }
+            when X::AIgent::Skill             { $type = 'base' }
+        }
+    }
+    is $type, 'validation', 'CATCH block matches most specific type first';
+}

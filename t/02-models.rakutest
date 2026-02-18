@@ -1,0 +1,95 @@
+use Test;
+use lib 'lib';
+use AIgent::Skill::Models;
+
+plan 12;
+
+# --- Construction ---
+
+{
+    my $sp = SkillProperties.new(:name<foo>, :description<bar>);
+    isa-ok $sp, SkillProperties, 'Construction with required fields only';
+}
+
+{
+    my $sp = SkillProperties.new(
+        :name<foo>,
+        :description<bar>,
+        :license<MIT>,
+        :compatibility('claude-3'),
+        :allowed-tools('bash, read'),
+        :metadata{ env => 'prod' },
+    );
+    isa-ok $sp, SkillProperties, 'Construction with all fields';
+}
+
+{
+    dies-ok { SkillProperties.new(:description<bar>) },
+        'Construction fails without name';
+}
+
+{
+    dies-ok { SkillProperties.new(:name<foo>) },
+        'Construction fails without description';
+}
+
+# --- to-hash ---
+
+{
+    my %h = SkillProperties.new(:name<foo>, :description<bar>).to-hash;
+    is-deeply %h, { name => 'foo', description => 'bar' },
+        'to-hash with required fields only';
+}
+
+{
+    my %h = SkillProperties.new(:name<foo>, :description<bar>, :license<MIT>).to-hash;
+    is-deeply %h, { name => 'foo', description => 'bar', license => 'MIT' },
+        'to-hash with license includes license';
+}
+
+{
+    my %h = SkillProperties.new(
+        :name<foo>,
+        :description<bar>,
+        :license<MIT>,
+        :compatibility('claude-3'),
+        :allowed-tools('bash, read'),
+        :metadata{ env => 'prod' },
+    ).to-hash;
+    is-deeply %h, {
+        name         => 'foo',
+        description  => 'bar',
+        license      => 'MIT',
+        compatibility => 'claude-3',
+        allowed-tools => 'bash, read',
+        metadata     => { env => 'prod' },
+    }, 'to-hash with all optional fields includes all';
+}
+
+{
+    my %h = SkillProperties.new(:name<foo>, :description<bar>).to-hash;
+    nok %h<metadata>:exists, 'to-hash with empty metadata excludes metadata';
+}
+
+{
+    my %h = SkillProperties.new(
+        :name<foo>, :description<bar>, :metadata{ k => 'v' },
+    ).to-hash;
+    is-deeply %h<metadata>, { k => 'v' },
+        'to-hash with non-empty metadata includes metadata';
+}
+
+# --- Accessors ---
+
+{
+    my $sp = SkillProperties.new(:name<foo>, :description<bar>);
+    is $sp.name, 'foo', '.name accessor works';
+    is $sp.description, 'bar', '.description accessor works';
+}
+
+{
+    my $sp = SkillProperties.new(
+        :name<foo>, :description<bar>, :allowed-tools('bash'),
+    );
+    is $sp.allowed-tools, 'bash', '.allowed-tools accessor works';
+}

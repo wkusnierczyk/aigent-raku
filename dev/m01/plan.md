@@ -66,7 +66,7 @@ Depends on Wave 2 (CI workflow uses `just` targets for lint).
 | R1.2 | `format-fix` uses `sed -i ''` (BSD) — breaks on GNU sed (Linux) | Medium | **Fix now**: use Raku one-liner instead of sed for portability |
 | R1.3 | pre-commit glob `**/*.{rakumod,raku}` misses `t/*.rakutest` and `bin/aigent` | Low | **Fix now**: expand glob to include `.rakutest` and `bin/aigent` |
 | R2.1 | pre-commit runs `raku -c {staged_files}` — `raku -c` accepts one file only | Medium | **Fix now**: iterate per file with a `for` loop |
-| R2.2 | `bin/aigent` has `use lib 'lib'` hardcoded | Low | **Defer**: expected for stub phase, will be replaced by `use Skills::Ref` when module is implemented |
+| R2.2 | `bin/aigent` has `use lib 'lib'` hardcoded | Low | **Defer**: expected for stub phase, will be replaced by `use AIgent::Skill` when module is implemented |
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 ## Project
 
-`Skills::Ref` — Raku AI Agent Skill Builder and Validator.
+`AIgent::Skill` — Raku AI Agent Skill Builder and Validator.
 CLI tool: `aigent` (`bin/aigent`).
 
 ## Setup
@@ -37,8 +37,8 @@ just bump-major         # 0.0.1 → 1.0.0
 ## Conventions
 
 - kebab-case for all sub/method names
-- Exception classes: `X::Skills::Ref::*` hierarchy
-- Module files: `lib/Skills/Ref/*.rakumod`
+- Exception classes: `X::AIgent::Skill::*` hierarchy
+- Module files: `lib/AIgent/Skill/*.rakumod`
 - Tests: `t/*.rakutest`
 - Do not commit to `main` directly — use feature branches and PRs
 

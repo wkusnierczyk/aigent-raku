@@ -21,5 +21,5 @@ What you expected to happen.
 
 **Environment**
 - Raku version: (output of `raku --version`)
-- Skills::Ref version: (output of `just version`)
+- AIgent::Skill version: (output of `just version`)
 - OS:

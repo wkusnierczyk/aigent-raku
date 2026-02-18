@@ -2,7 +2,7 @@ use Test;
 use lib 'lib';
 use AIgent::Skill::Models;
 
-plan 12;
+plan 13;
 
 # --- Construction ---
 
@@ -92,4 +92,11 @@ plan 12;
         :name<foo>, :description<bar>, :allowed-tools('bash'),
     );
     is $sp.allowed-tools, 'bash', '.allowed-tools accessor works';
+}
+
+{
+    my $sp = SkillProperties.new(
+        :name<foo>, :description<bar>, :metadata{ k => 'v' },
+    );
+    is-deeply $sp.metadata, { k => 'v' }, '.metadata accessor returns hash';
 }

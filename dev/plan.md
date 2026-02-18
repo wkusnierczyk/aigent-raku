@@ -1,4 +1,4 @@
-# Raku Skills-Ref Implementation Plan
+# AIgent::Skill Implementation Plan
 
 ## Context
 

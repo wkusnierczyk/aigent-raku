@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  RAKU_VERSION: 'latest'
+
+jobs:
+  ci:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Raku
+        uses: Raku/setup-raku@v1
+        with:
+          raku-version: ${{ env.RAKU_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.raku
+            ~/.zef
+          key: raku-${{ runner.os }}-${{ env.RAKU_VERSION }}-${{ hashFiles('META6.json') }}
+          restore-keys: |
+            raku-${{ runner.os }}-${{ env.RAKU_VERSION }}-
+            raku-${{ runner.os }}-
+
+      - name: Install just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Install dependencies
+        run: zef install --deps-only . --/test
+
+      - name: Lint
+        run: just lint
+
+      - name: Test
+        run: just test

@@ -9,13 +9,22 @@ all_files := src_files + " " + `find t -name '*.rakumod' -o -name '*.rakutest' 2
 
 # Install deps, lefthook, and activate git hooks
 setup:
-    @echo "Installing Raku dependencies..."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Installing Raku dependencies..."
     zef install --deps-only . --/test
-    @echo "Installing lefthook..."
-    brew install lefthook 2>/dev/null || echo "lefthook already installed"
-    @echo "Activating git hooks..."
+    if ! command -v lefthook &>/dev/null; then
+        echo "Installing lefthook..."
+        if [[ "$(uname)" == "Darwin" ]]; then
+            brew install lefthook
+        else
+            echo "Please install lefthook: https://github.com/evilmartians/lefthook#install"
+            exit 1
+        fi
+    fi
+    echo "Activating git hooks..."
     lefthook install
-    @echo "Done."
+    echo "Done."
 
 # Install module locally via zef
 install:
@@ -81,7 +90,7 @@ format-fix:
     files=({{ all_files }})
     for f in "${files[@]}"; do
         if [ -f "$f" ]; then
-            sed -i '' 's/[[:space:]]*$//' "$f"
+            raku -e 'my $p = @*ARGS[0].IO; $p.spurt: $p.lines.map(*.trim-trailing).join("\n") ~ "\n"' "$f"
             echo "  fixed $f"
         fi
     done

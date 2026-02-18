@@ -23,12 +23,14 @@ setup:
 
 # Install module locally via zef
 install:
+    #!/usr/bin/env bash
     zef install . --/test
 
 # ─── Testing ──────────────────────────────────────────────────────────
 
 # Run the test suite
 test:
+    #!/usr/bin/env bash
     prove6 -Ilib -l t/
 
 # ─── Linting ──────────────────────────────────────────────────────────
@@ -50,9 +52,10 @@ lint-syntax:
 
 # Validate META6.json required fields
 lint-meta:
-    @echo "Checking META6.json..."
+    #!/usr/bin/env bash
+    echo "Checking META6.json..."
     raku -MJSON::Fast -e 'my $m = from-json(slurp "META6.json"); die "Missing $_" unless $m{$_} for <name version provides>;'
-    @echo "META6.json OK."
+    echo "META6.json OK."
 
 # ─── Formatting ───────────────────────────────────────────────────────
 
@@ -102,17 +105,19 @@ format-fix:
 
 # Print current version from META6.json
 version:
-    @raku -MJSON::Fast -e 'say from-json(slurp "META6.json")<version>'
+    #!/usr/bin/env bash
+    raku -MJSON::Fast -e 'say from-json(slurp "META6.json")<version>'
 
 # Set version in META6.json
 version-set NEW_VERSION:
+    #!/usr/bin/env bash
     raku -MJSON::Fast -e ' \
         my $path = "META6.json"; \
         my $m = from-json(slurp $path); \
         $m<version> = "{{ NEW_VERSION }}"; \
         spurt $path, to-json($m, :sorted-keys) ~ "\n"; \
     '
-    @echo "Version set to {{ NEW_VERSION }}"
+    echo "Version set to {{ NEW_VERSION }}"
 
 # Increment patch version (0.0.1 → 0.0.2)
 bump-patch:

@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-use Skills::Ref;
+use lib 'lib';
 
 proto MAIN(|) is export {*}
 

@@ -10,8 +10,12 @@ env:
 
 jobs:
   ci:
-    name: Lint & Test
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -33,8 +37,13 @@ jobs:
             raku-${{ runner.os }}-${{ env.RAKU_VERSION }}-
             raku-${{ runner.os }}-
 
-      - name: Install just
+      - name: Install just (Unix)
+        if: runner.os != 'Windows'
         run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Install just (Windows)
+        if: runner.os == 'Windows'
+        run: choco install just -y
 
       - name: Install dependencies
         run: |

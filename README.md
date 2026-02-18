@@ -1,4 +1,4 @@
-# Skills::Ref
+# Raku AI Agent Skill Builder and Validator
 
 A Raku library and CLI tool for managing AI agent skill definitions. Validates, parses, and generates prompts from skill metadata stored in `SKILL.md` files with YAML frontmatter. Also provides a skill builder for creating new skills from natural language specifications.
 

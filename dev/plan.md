@@ -61,7 +61,7 @@ raku-skills-ref/
 - **#3 Update .gitignore** — Add `.precomp/`, `lib/.precomp/`, and any other Raku artifacts.
 - **#4 Create stub module files** — Empty `lib/Skills/Ref.rakumod` and submodules, `bin/skills-ref` stub.
 - **#23 Add GitHub Actions CI workflow** — `.github/workflows/ci.yml`: trigger on push to main and PRs, set up Raku, install deps, run tests.
-- **#27 Add version management tooling** — `App::Mi6` with Makefile wrapper. Version lives exclusively in META6.json. Targets: `version`, `version-set`, `bump-{patch,minor,major}`.
+- **#27 Add version management via mi6** — Version lives exclusively in META6.json. Use `mi6 version` to check and `mi6 version --set=x.y.z` to set.
 
 ### M2: Core Data Model & Errors
 > Implement the exception hierarchy and the SkillProperties model.

@@ -1,0 +1,12 @@
+pre-commit:
+  commands:
+    syntax-check:
+      glob: "**/*.{rakumod,raku}"
+      run: raku -Ilib -c {staged_files}
+
+pre-push:
+  commands:
+    lint:
+      run: just lint
+    test:
+      run: just test

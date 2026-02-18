@@ -1,0 +1,173 @@
+use Test;
+use lib 'lib';
+use AIgent::Skill::Parser;
+use AIgent::Skill::Errors;
+use AIgent::Skill::Models;
+
+plan 17;
+
+# --- Helper: create a temp directory ---
+
+sub make-tmpdir(--> IO::Path) {
+    my $dir = $*TMPDIR.add('aigent-test-' ~ $*PID ~ '-' ~ now.Num);
+    $dir.mkdir;
+    $dir;
+}
+
+sub write-skill($dir, Str $filename, Str $content) {
+    $dir.add($filename).spurt($content);
+}
+
+# --- find-skill-md ---
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', '---
+name: test
+---
+');
+    my $path = find-skill-md($dir);
+    is $path.basename, 'SKILL.md', 'find-skill-md returns SKILL.md when uppercase exists';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'skill.md', '---
+name: test
+---
+');
+    my $path = find-skill-md($dir);
+    is $path.basename, 'skill.md', 'find-skill-md returns skill.md when only lowercase exists';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', 'upper');
+    write-skill($dir, 'skill.md', 'lower');
+    my $path = find-skill-md($dir);
+    is $path.basename, 'SKILL.md', 'find-skill-md prefers uppercase when both exist';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.rmdir }
+
+    nok find-skill-md($dir).defined, 'find-skill-md returns Nil when neither exists';
+}
+
+# --- parse-frontmatter ---
+
+{
+    my ($meta, $body) = parse-frontmatter("---\nname: my-skill\ndescription: A test skill\n---\nHello world\n");
+    is $meta<name>, 'my-skill', 'parse-frontmatter extracts metadata from valid frontmatter';
+    is $body, "Hello world\n", 'parse-frontmatter extracts body from valid frontmatter';
+}
+
+{
+    my ($meta, $body) = parse-frontmatter("---\nname: my-skill\n---\n");
+    is $meta<name>, 'my-skill', 'parse-frontmatter handles empty body';
+    is $body, '', 'parse-frontmatter returns empty string for empty body';
+}
+
+{
+    throws-like { parse-frontmatter("no frontmatter here") },
+        X::AIgent::Skill::Parse,
+        'parse-frontmatter throws Parse when content does not start with ---';
+}
+
+{
+    throws-like { parse-frontmatter("---\nname: test\nno closing delimiter") },
+        X::AIgent::Skill::Parse,
+        'parse-frontmatter throws Parse when closing --- is missing';
+}
+
+{
+    throws-like { parse-frontmatter("---\n: invalid: yaml: [[\n---\n") },
+        X::AIgent::Skill::Parse,
+        'parse-frontmatter throws Parse when YAML is invalid';
+}
+
+{
+    throws-like { parse-frontmatter("---\n- item1\n- item2\n---\n") },
+        X::AIgent::Skill::Parse,
+        'parse-frontmatter throws Parse when frontmatter is not a mapping';
+}
+
+# --- read-properties ---
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\nname: my-skill\ndescription: A great skill\nlicense: MIT\n---\nBody text\n");
+    my $sp = read-properties($dir);
+    isa-ok $sp, SkillProperties, 'read-properties returns SkillProperties for valid skill';
+    is $sp.name, 'my-skill', 'read-properties parses name correctly';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\nname: meta-test\ndescription: Testing metadata\nmetadata:\n  env: prod\n  version: '2'\n---\n");
+    my $sp = read-properties($dir);
+    is-deeply $sp.metadata, { env => 'prod', version => '2' },
+        'read-properties parses flat metadata into .metadata hash';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\nname: nested-test\ndescription: Testing nested metadata\nmetadata:\n  tags:\n    - ai\n    - tool\n  config:\n    timeout: 30\n---\n");
+    my $sp = read-properties($dir);
+    is-deeply $sp.metadata<tags>, ['ai', 'tool'],
+        'read-properties preserves nested metadata arrays as-is';
+    is-deeply $sp.metadata<config>, { timeout => 30 },
+        'read-properties preserves nested metadata hashes as-is';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\nname: tools-test\ndescription: Testing tools\nallowed-tools: Bash(jq:*) Bash(git:*)\n---\n");
+    my $sp = read-properties($dir);
+    is $sp.allowed-tools, 'Bash(jq:*) Bash(git:*)',
+        'read-properties parses allowed-tools field';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.rmdir }
+
+    throws-like { read-properties($dir) },
+        X::AIgent::Skill::Parse,
+        'read-properties throws Parse when SKILL.md is missing';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\ndescription: no name here\n---\n");
+    throws-like { read-properties($dir) },
+        X::AIgent::Skill::Validation,
+        'read-properties throws Validation when name is missing';
+}
+
+{
+    my $dir = make-tmpdir;
+    LEAVE { $dir.dir>>.unlink; $dir.rmdir }
+
+    write-skill($dir, 'SKILL.md', "---\nname: no-desc\n---\n");
+    throws-like { read-properties($dir) },
+        X::AIgent::Skill::Validation,
+        'read-properties throws Validation when description is missing';
+}

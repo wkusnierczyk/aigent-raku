@@ -59,9 +59,10 @@ Use this body format:
 ```markdown
 ## Summary
 - Description of first change
-  See #N
+  #N
 - Description of second change
-  See #N
+  #N
+  #M
 
 ## Test plan
 - [ ] Check item 1
@@ -70,4 +71,7 @@ Use this body format:
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-Each summary bullet: description on the first line, `See #N` on the next (two trailing spaces for line break). Issue references always on their own line, never inline in parentheses.
+Rules:
+- Description on the first line, issue refs on subsequent lines (two trailing spaces for line break)
+- Each issue on its own line — just `#N`, no `See` prefix, no parentheses
+- Never combine multiple issues on one line

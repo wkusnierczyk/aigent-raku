@@ -4,24 +4,13 @@ A Raku library and CLI tool for managing AI agent skill definitions. Validates, 
 
 This is a Raku port of the Python [skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref) reference implementation by Anthropic, extended with a skill builder module.
 
-## About
-
-```
-Skills::Ref: Raku AI Agent Skills Tool
-├─ version:    0.0.1
-├─ developer:  mailto:waclaw.kusnierczyk@gmail.com
-├─ source:     https://github.com/wkusnierczyk/raku-skills-ref
-└─ licence:    MIT https://opensource.org/licenses/MIT
-```
-
 ## Table of Contents
 
-- [About](#about)
 - [Status](#status)
 - [References](#references)
 - [Development](#development)
 - [Development Plan](#development-plan)
-- [License](#license)
+- [About and License](#about-and-license)
 
 ## Status
 
@@ -130,6 +119,14 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 | M7 | Skill Builder | 2026-02-25 | [#16](https://github.com/wkusnierczyk/raku-skills-ref/issues/16), [#17](https://github.com/wkusnierczyk/raku-skills-ref/issues/17), [#18](https://github.com/wkusnierczyk/raku-skills-ref/issues/18), [#19](https://github.com/wkusnierczyk/raku-skills-ref/issues/19) |
 | M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/raku-skills-ref/issues/20), [#21](https://github.com/wkusnierczyk/raku-skills-ref/issues/21), [#24](https://github.com/wkusnierczyk/raku-skills-ref/issues/24), [#25](https://github.com/wkusnierczyk/raku-skills-ref/issues/25) |
 
-## License
+## About and License
+
+```
+Skills::Ref: Raku AI Agent Skills Tool
+├─ version:    0.0.1
+├─ developer:  mailto:waclaw.kusnierczyk@gmail.com
+├─ source:     https://github.com/wkusnierczyk/raku-skills-ref
+└─ licence:    MIT https://opensource.org/licenses/MIT
+```
 
 [MIT](LICENSE) — see [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)

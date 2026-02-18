@@ -43,7 +43,7 @@ lint-syntax:
     while IFS= read -r f; do
         printf "  \033[36m.\033[0m %s\n" "$f"
         raku -Ilib -c "$f"
-    done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
     printf "  \033[36m.\033[0m %s\n" "bin/aigent"
     raku -Ilib -c bin/aigent
     echo "All files passed syntax check."
@@ -72,7 +72,7 @@ format:
             ok=false
         fi
     }
-    while IFS= read -r f; do check_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    while IFS= read -r f; do check_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
     check_file bin/aigent
     if $ok; then
         echo "No whitespace issues found."
@@ -91,10 +91,10 @@ format-fix:
             echo "  fixed $1"
         fi
     }
-    while IFS= read -r f; do fix_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    while IFS= read -r f; do fix_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
     fix_file bin/aigent
     if [[ -d t ]]; then
-        while IFS= read -r f; do fix_file "$f"; done < <(raku -e '.say for "t".IO.dir.grep(*.extension eq any("rakumod","rakutest"))')
+        while IFS= read -r f; do fix_file "$f"; done < <(raku -e '.say for "t".IO.dir.grep(*.extension eq any("rakumod","rakutest"))' | tr -d '\r')
     fi
     echo "Trailing whitespace removed."
 

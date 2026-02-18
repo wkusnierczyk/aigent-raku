@@ -38,76 +38,56 @@ See the [development plan](dev/plan.md) for full details.
 
 ## Development
 
-### Prerequisites
+### Step 1: Install Just
+
+[Just](https://github.com/casey/just) is the project's command runner. Install it first — all other setup steps use it.
+
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install just` |
+| Linux (Debian/Ubuntu) | `sudo apt install just` or `sudo snap install --edge --classic just` |
+| Linux (Arch) | `sudo pacman -S just` |
+| Windows | `winget install Casey.Just` or `scoop install just` |
+| Any (via Cargo) | `cargo install just` |
+| Any (prebuilt) | Download from [releases](https://github.com/casey/just/releases) |
+
+See the [Just installation docs](https://just.systems/man/en/packages.html) for more options.
+
+> **Why Just and not mi6?** We initially considered [App::Mi6](https://github.com/skaji/mi6) (Raku's standard module authoring tool), but it proved too limited: mi6 only provides `new`, `build`, `test`, `release`, and `version` commands. It has no support for formatting, linting, or custom targets, and no extension mechanism to add them. Since we need `lint`, `format`, `bump-*`, and other dev workflow targets, mi6 was not a viable build system for this project. We use Just instead, which provides full control over all development tasks.
+
+### Step 2: Install Prerequisites
 
 - [Rakudo](https://rakudo.org/) (latest release)
 - [zef](https://github.com/ugexe/zef) (Raku module manager)
-- [Just](https://github.com/casey/just) (command runner)
-- [Lefthook](https://github.com/evilmartians/lefthook) (git hooks manager)
 
-### Setup
+### Step 3: Clone and Set Up
 
 ```bash
 git clone git@github.com:wkusnierczyk/raku-skills-ref.git
 cd raku-skills-ref
-zef install --deps-only .
-lefthook install
+just setup
 ```
 
-### Installing Just
+`just setup` installs Raku dependencies, installs [Lefthook](https://github.com/evilmartians/lefthook) (git hooks manager), and activates the hooks.
 
-[Just](https://github.com/casey/just) is the project's command runner, providing targets for testing, linting, formatting, and versioning.
+> **Lefthook** is installed automatically by `just setup`. If you prefer to install it manually: `brew install lefthook` (macOS), `npm install -g @evilmartians/lefthook` (any platform), or download from [releases](https://github.com/evilmartians/lefthook/releases). See the [Lefthook docs](https://github.com/evilmartians/lefthook) for details.
 
-```bash
-# macOS
-brew install just
+### Git Hooks (via Lefthook)
 
-# or via cargo
-cargo install just
+After `just setup`, the following hooks are active:
 
-# or download from https://github.com/casey/just/releases
-```
-
-> **Why Just and not mi6?** We initially considered [App::Mi6](https://github.com/skaji/mi6) (Raku's standard module authoring tool), but it proved too limited: mi6 only provides `new`, `build`, `test`, `release`, and `version` commands. It has no support for formatting, linting, or custom targets, and no extension mechanism to add them. Since we need `lint`, `format`, `bump-*`, and other dev workflow targets, mi6 was not a viable build system for this project. We use Just instead, which provides full control over all development tasks.
-
-### Installing Lefthook
-
-[Lefthook](https://github.com/evilmartians/lefthook) manages git hooks for pre-commit and pre-push checks. Install it before contributing:
-
-```bash
-# macOS
-brew install lefthook
-
-# or via npm
-npm install -g @evilmartians/lefthook
-
-# or download from https://github.com/evilmartians/lefthook/releases
-```
-
-After installing, run `lefthook install` in the repo root. This sets up:
-
-- **pre-commit**: format and lint (`just lint`)
-- **pre-push**: test and build (`just test`)
+- **pre-commit**: `just lint` — syntax check all source files
+- **pre-push**: `just test` — run full test suite
 
 ### Common Tasks
 
 ```bash
-# Run tests
-just test
-
-# Lint (compile check)
-just lint
-
-# Format (compile check — Raku lacks a standalone formatter)
-just format
-
-# Check current version
-just version
-
-# Set version
-just version-set 0.1.0
-
-# Bump version
+just setup        # install deps + lefthook + hooks
+just test         # run test suite
+just lint         # syntax check (raku -c) all source files
+just format       # alias for lint (Raku lacks a standalone formatter)
+just version      # print current version
+just version-set 0.1.0  # set version explicitly
 just bump-patch   # 0.0.1 → 0.0.2
 just bump-minor   # 0.0.1 → 0.1.0
 just bump-major   # 0.0.1 → 1.0.0

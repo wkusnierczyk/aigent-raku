@@ -10,8 +10,16 @@ env:
 
 jobs:
   ci:
-    name: Lint & Test
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
@@ -33,16 +41,29 @@ jobs:
             raku-${{ runner.os }}-${{ env.RAKU_VERSION }}-
             raku-${{ runner.os }}-
 
-      - name: Install just
+      - name: Install just (Unix)
+        if: runner.os != 'Windows'
         run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
+      - name: Install just (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: choco install just -y
+
       - name: Install dependencies
-        run: |
-          zef install --deps-only . --/test
-          zef install App::Prove6 --/test
+        run: zef install --deps-only . --/test
+
+      - name: Install prove6 (Unix)
+        if: runner.os != 'Windows'
+        run: zef install App::Prove6 --/test
 
       - name: Lint
         run: just lint
 
-      - name: Test
+      - name: Test (Unix)
+        if: runner.os != 'Windows'
         run: just test
+
+      - name: Test (Windows)
+        if: runner.os == 'Windows'
+        run: zef test .

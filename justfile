@@ -1,10 +1,5 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# Source file globs
-lib_files := `find lib -name '*.rakumod'`
-src_files := lib_files + " bin/aigent"
-all_files := src_files + " " + `find t -name '*.rakumod' -o -name '*.rakutest' 2>/dev/null || true`
-
 # ─── Setup & Install ──────────────────────────────────────────────────
 
 # Install deps, lefthook, and activate git hooks
@@ -28,12 +23,14 @@ setup:
 
 # Install module locally via zef
 install:
+    #!/usr/bin/env bash
     zef install . --/test
 
 # ─── Testing ──────────────────────────────────────────────────────────
 
 # Run the test suite
 test:
+    #!/usr/bin/env bash
     prove6 -Ilib -l t/
 
 # ─── Linting ──────────────────────────────────────────────────────────
@@ -45,18 +42,20 @@ lint: lint-syntax lint-meta
 lint-syntax:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ src_files }})
-    for f in "${files[@]}"; do
+    while IFS= read -r f; do
         printf "  \033[36m.\033[0m %s\n" "$f"
         raku -Ilib -c "$f"
-    done
+    done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
+    printf "  \033[36m.\033[0m %s\n" "bin/aigent"
+    raku -Ilib -c bin/aigent
     echo "All files passed syntax check."
 
 # Validate META6.json required fields
 lint-meta:
-    @echo "Checking META6.json..."
+    #!/usr/bin/env bash
+    echo "Checking META6.json..."
     raku -MJSON::Fast -e 'my $m = from-json(slurp "META6.json"); die "Missing $_" unless $m{$_} for <name version provides>;'
-    @echo "META6.json OK."
+    echo "META6.json OK."
 
 # ─── Formatting ───────────────────────────────────────────────────────
 
@@ -64,9 +63,9 @@ lint-meta:
 format:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ src_files }})
     ok=true
-    for f in "${files[@]}"; do
+    check_file() {
+        local f="$1"
         if grep -n $'\t' "$f"; then
             echo "  WARNING: tab found in $f"
             ok=false
@@ -75,7 +74,9 @@ format:
             echo "  WARNING: trailing whitespace in $f"
             ok=false
         fi
-    done
+    }
+    while IFS= read -r f; do check_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
+    check_file bin/aigent
     if $ok; then
         echo "No whitespace issues found."
     else
@@ -87,30 +88,36 @@ format:
 format-fix:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ all_files }})
-    for f in "${files[@]}"; do
-        if [ -f "$f" ]; then
-            raku -e 'my $p = @*ARGS[0].IO; $p.spurt: $p.lines.map(*.trim-trailing).join("\n") ~ "\n"' "$f"
-            echo "  fixed $f"
+    fix_file() {
+        if [ -f "$1" ]; then
+            raku -e 'my $p = @*ARGS[0].IO; $p.spurt: $p.lines.map(*.trim-trailing).join("\n") ~ "\n"' "$1"
+            echo "  fixed $1"
         fi
-    done
+    }
+    while IFS= read -r f; do fix_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values' | tr -d '\r')
+    fix_file bin/aigent
+    if [[ -d t ]]; then
+        while IFS= read -r f; do fix_file "$f"; done < <(raku -e '.say for "t".IO.dir.grep(*.extension eq any("rakumod","rakutest"))' | tr -d '\r')
+    fi
     echo "Trailing whitespace removed."
 
 # ─── Versioning ───────────────────────────────────────────────────────
 
 # Print current version from META6.json
 version:
-    @raku -MJSON::Fast -e 'say from-json(slurp "META6.json")<version>'
+    #!/usr/bin/env bash
+    raku -MJSON::Fast -e 'say from-json(slurp "META6.json")<version>'
 
 # Set version in META6.json
 version-set NEW_VERSION:
+    #!/usr/bin/env bash
     raku -MJSON::Fast -e ' \
         my $path = "META6.json"; \
         my $m = from-json(slurp $path); \
         $m<version> = "{{ NEW_VERSION }}"; \
         spurt $path, to-json($m, :sorted-keys) ~ "\n"; \
     '
-    @echo "Version set to {{ NEW_VERSION }}"
+    echo "Version set to {{ NEW_VERSION }}"
 
 # Increment patch version (0.0.1 → 0.0.2)
 bump-patch:

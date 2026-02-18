@@ -1,4 +1,4 @@
-# Raku Skills-Ref Implementation Plan
+# AIgent::Skill Implementation Plan
 
 ## Context
 
@@ -7,13 +7,13 @@ The Python `skills-ref` library (at `agentskills/agentskills/skills-ref`) is a r
 ## Project Structure
 
 ```
-raku-skills-ref/
+aigent-raku/
 ├── META6.json                     # Raku module metadata & dependencies
 ├── lib/
-│   └── Skills/
-│       ├── Ref.rakumod            # Main module (re-exports public API)
-│       └── Ref/
-│           ├── Errors.rakumod     # Exception classes (X::Skills::*)
+│   └── AIgent/
+│       ├── Skill.rakumod          # Main module (re-exports public API)
+│       └── Skill/
+│           ├── Errors.rakumod     # Exception classes (X::AIgent::Skill::*)
 │           ├── Models.rakumod     # SkillProperties class
 │           ├── Parser.rakumod     # find-skill-md, parse-frontmatter, read-properties
 │           ├── Prompt.rakumod     # to-prompt (XML generation)
@@ -40,8 +40,8 @@ raku-skills-ref/
 
 | Python | Raku |
 |--------|------|
-| `@dataclass SkillProperties` | `class Skills::Ref::Models::SkillProperties` with `has` attributes |
-| `SkillError / ParseError / ValidationError` | `X::Skills::Ref`, `X::Skills::Ref::Parse`, `X::Skills::Ref::Validation` |
+| `@dataclass SkillProperties` | `class AIgent::Skill::Models::SkillProperties` with `has` attributes |
+| `SkillError / ParseError / ValidationError` | `X::AIgent::Skill`, `X::AIgent::Skill::Parse`, `X::AIgent::Skill::Validation` |
 | `click` CLI | `multi MAIN` with `USAGE` sub |
 | `strictyaml` | `YAMLish` |
 | `json.dumps` | `JSON::Fast` |
@@ -70,8 +70,9 @@ raku-skills-ref/
 ### M2: Core Data Model & Errors
 > Implement the exception hierarchy and the SkillProperties model.
 
-- **#5 Implement Errors module** — `X::Skills::Ref` (base), `X::Skills::Ref::Parse` (parse failures), `X::Skills::Ref::Validation` (with `.errors` attribute holding `Str @errors`).
-- **#6 Implement Models module** — `SkillProperties` class with attributes: `name` (Str, required), `description` (Str, required), `license` (Str), `compatibility` (Str), `allowed-tools` (Str), `metadata` (Hash[Str, Str]). Include `to-hash()` method (excludes undefined optional fields and empty metadata).
+- **#33 Rename module from Skills::Ref to AIgent::Skill** — Rename namespace, file paths, docs, and GitHub issues.
+- **#5 Implement Errors module** — `X::AIgent::Skill` (base), `X::AIgent::Skill::Parse` (parse failures), `X::AIgent::Skill::Validation` (with `.errors` attribute holding `Str @errors`).
+- **#6 Implement Models module** — `SkillProperties` class with attributes: `name` (Str, required), `description` (Str, required), `license` (Str), `compatibility` (Str), `allowed-tools` (Str), `metadata` (Hash). Include `to-hash()` method (excludes undefined optional fields and empty metadata).
 - **#7 Write tests for Errors and Models** — `t/01-errors.rakutest`, `t/02-models.rakutest`: construction, to-hash, exception throwing/catching.
 
 ### M3: Parser
@@ -120,7 +121,7 @@ raku-skills-ref/
 The Builder accepts natural language descriptions of what a skill should do, and produces a complete, valid skill directory including SKILL.md with proper frontmatter and any additional files (prompt templates, etc.). It uses the existing Models and Validator modules to ensure the generated output passes validation.
 
 - **#16 Design Builder data model** — Define `SkillSpec` class to capture user input: purpose/goal (natural language), target name (optional, auto-derived if omitted), desired tools, compatibility notes, and any additional files to include. Define `BuildResult` to represent the output: generated `SkillProperties`, file contents map (`Hash[Str, Str]` of relative-path → content), and the output directory path.
-- **#17 Implement Builder core** — `Skills::Ref::Builder` module with:
+- **#17 Implement Builder core** — `AIgent::Skill::Builder` module with:
   - `build-skill(SkillSpec $spec, IO::Path $output-dir --> BuildResult)` — generates SKILL.md with valid frontmatter + markdown body from the spec, creates the output directory structure, writes all files, and validates the result using the Validator.
   - `derive-name(Str $purpose --> Str)` — derives a kebab-case skill name from a natural language description.
   - `generate-frontmatter(SkillSpec $spec --> Hash)` — builds the YAML frontmatter hash from the spec.
@@ -135,10 +136,19 @@ The Builder accepts natural language descriptions of what a skill should do, and
 ### M8: Main Module & Documentation
 > Wire up the public API and finalize documentation.
 
-- **#20 Implement main module exports** — `Skills::Ref` re-exports: `find-skill-md`, `read-properties`, `parse-frontmatter`, `validate`, `validate-metadata`, `to-prompt`, `build-skill`, `SkillProperties`, `SkillSpec`, `BuildResult`, all exception classes.
+- **#20 Implement main module exports** — `AIgent::Skill` re-exports: `find-skill-md`, `read-properties`, `parse-frontmatter`, `validate`, `validate-metadata`, `to-prompt`, `build-skill`, `SkillProperties`, `SkillSpec`, `BuildResult`, all exception classes.
 - **#21 Update README.md** — Usage examples, installation, API reference, CLI docs (including builder commands).
 - **#24 Add GitHub Actions release workflow** — `.github/workflows/release.yml`: trigger on tag push (`v*`), run tests, create GitHub Release, publish to Raku ecosystem (zef).
 - **#25 Add CHANGES.md** — Changelog tracking notable changes per version, starting with v0.1.0. Referenced by the release workflow for GitHub Release notes.
+
+### M9: Claude Code Plugin
+> Claude Code plugin/skill that uses aigent to create agent skills from within Claude Code.
+
+- **#34 Create aigent-builder Claude Code skill** — `.claude/skills/aigent-builder/SKILL.md`. Hybrid: uses `aigent build` when available, falls back to prompt-only generation without it. Depends on M7.
+- **#35 Create aigent-validator Claude Code skill** — `.claude/skills/aigent-validator/SKILL.md`. Hybrid: uses `aigent validate` when available, falls back to Claude-based spec checking. Depends on M6.
+- **#38 Build standalone aigent binary for release** — Standalone binary for macOS/Linux so plugin users don't need Raku installed. Integrated into release workflow (#24).
+- **#36 Package as Claude Code plugin** — Bundle skills into a distributable plugin with `.claude-plugin/plugin.json` manifest. Documents install options: standalone binary, zef, or prompt-only fallback. Depends on #34, #35, #38.
+- **#37 Write tests for Claude Code plugin** — Frontmatter validation, manifest checks, integration tests for both hybrid modes. Depends on #34, #35, #36.
 
 ---
 
@@ -153,12 +163,17 @@ M1 (Scaffolding)
       └─> M4 (Validator)
            └─> M6 (CLI)
                 └─> M7 (Builder) ─> M8 (Docs)
+                                      └─> M9 (Plugin)
 ```
 
 M7 (Builder) depends on M2 (Models), M4 (Validator), and M6 (CLI) because it:
 - Uses SkillProperties from Models
 - Validates generated output via Validator
 - Extends the CLI with new subcommands
+
+M9 (Plugin) depends on M7 (Builder) and M6 (CLI) because it:
+- Wraps `aigent build` (from M7) as a Claude Code skill
+- Wraps `aigent validate` (from M6) as a Claude Code skill
 
 ## Verification
 

@@ -43,7 +43,7 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 
 | # | Milestone | Due | Issues |
 |---|-----------|-----|--------|
-| M1 | Project Scaffolding | 2026-02-19 | [#1](https://github.com/wkusnierczyk/raku-skills-ref/issues/1), [#2](https://github.com/wkusnierczyk/raku-skills-ref/issues/2), [#3](https://github.com/wkusnierczyk/raku-skills-ref/issues/3), [#4](https://github.com/wkusnierczyk/raku-skills-ref/issues/4), [#23](https://github.com/wkusnierczyk/raku-skills-ref/issues/23) |
+| M1 | Project Scaffolding | 2026-02-19 | [#1](https://github.com/wkusnierczyk/raku-skills-ref/issues/1), [#2](https://github.com/wkusnierczyk/raku-skills-ref/issues/2), [#3](https://github.com/wkusnierczyk/raku-skills-ref/issues/3), [#4](https://github.com/wkusnierczyk/raku-skills-ref/issues/4), [#23](https://github.com/wkusnierczyk/raku-skills-ref/issues/23), [#27](https://github.com/wkusnierczyk/raku-skills-ref/issues/27) |
 | M2 | Core Data Model & Errors | 2026-02-20 | [#5](https://github.com/wkusnierczyk/raku-skills-ref/issues/5), [#6](https://github.com/wkusnierczyk/raku-skills-ref/issues/6), [#7](https://github.com/wkusnierczyk/raku-skills-ref/issues/7) |
 | M3 | Parser | 2026-02-21 | [#8](https://github.com/wkusnierczyk/raku-skills-ref/issues/8), [#9](https://github.com/wkusnierczyk/raku-skills-ref/issues/9) |
 | M4 | Validator | 2026-02-22 | [#10](https://github.com/wkusnierczyk/raku-skills-ref/issues/10), [#11](https://github.com/wkusnierczyk/raku-skills-ref/issues/11) |

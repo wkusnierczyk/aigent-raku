@@ -1,11 +1,5 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# Source file globs (use raku for cross-platform — find is Unix-only)
-lib_files := `raku -MJSON::Fast -e '.put for from-json(slurp "META6.json")<provides>.values'`
-src_files := lib_files + " bin/aigent"
-test_files := `raku -e '.put for ("t".IO.d ?? "t".IO.dir.grep(*.extension eq any("rakumod","rakutest")) !! ())'`
-all_files := src_files + " " + test_files
-
 # ─── Setup & Install ──────────────────────────────────────────────────
 
 # Install deps, lefthook, and activate git hooks
@@ -46,11 +40,12 @@ lint: lint-syntax lint-meta
 lint-syntax:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ src_files }})
-    for f in "${files[@]}"; do
+    while IFS= read -r f; do
         printf "  \033[36m.\033[0m %s\n" "$f"
         raku -Ilib -c "$f"
-    done
+    done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    printf "  \033[36m.\033[0m %s\n" "bin/aigent"
+    raku -Ilib -c bin/aigent
     echo "All files passed syntax check."
 
 # Validate META6.json required fields
@@ -65,9 +60,9 @@ lint-meta:
 format:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ src_files }})
     ok=true
-    for f in "${files[@]}"; do
+    check_file() {
+        local f="$1"
         if grep -n $'\t' "$f"; then
             echo "  WARNING: tab found in $f"
             ok=false
@@ -76,7 +71,9 @@ format:
             echo "  WARNING: trailing whitespace in $f"
             ok=false
         fi
-    done
+    }
+    while IFS= read -r f; do check_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    check_file bin/aigent
     if $ok; then
         echo "No whitespace issues found."
     else
@@ -88,13 +85,17 @@ format:
 format-fix:
     #!/usr/bin/env bash
     set -euo pipefail
-    files=({{ all_files }})
-    for f in "${files[@]}"; do
-        if [ -f "$f" ]; then
-            raku -e 'my $p = @*ARGS[0].IO; $p.spurt: $p.lines.map(*.trim-trailing).join("\n") ~ "\n"' "$f"
-            echo "  fixed $f"
+    fix_file() {
+        if [ -f "$1" ]; then
+            raku -e 'my $p = @*ARGS[0].IO; $p.spurt: $p.lines.map(*.trim-trailing).join("\n") ~ "\n"' "$1"
+            echo "  fixed $1"
         fi
-    done
+    }
+    while IFS= read -r f; do fix_file "$f"; done < <(raku -MJSON::Fast -e '.say for from-json(slurp "META6.json")<provides>.values')
+    fix_file bin/aigent
+    if [[ -d t ]]; then
+        while IFS= read -r f; do fix_file "$f"; done < <(raku -e '.say for "t".IO.dir.grep(*.extension eq any("rakumod","rakutest"))')
+    fi
     echo "Trailing whitespace removed."
 
 # ─── Versioning ───────────────────────────────────────────────────────

@@ -71,15 +71,16 @@ After `just setup`, the following hooks are active:
 ### Common Tasks
 
 ```bash
-just setup        # install deps + lefthook + hooks
-just test         # run test suite
-just lint         # syntax check (raku -c) all source files
-just format       # alias for lint (Raku lacks a standalone formatter)
-just version      # print current version
+just setup              # install deps + lefthook + hooks
+just install            # install module locally (zef install .)
+just test               # run test suite
+just lint               # syntax check (raku -c) all source files
+just format             # alias for lint (Raku lacks a standalone formatter)
+just version            # print current version
 just version-set 0.1.0  # set version explicitly
-just bump-patch   # 0.0.1 → 0.0.2
-just bump-minor   # 0.0.1 → 0.1.0
-just bump-major   # 0.0.1 → 1.0.0
+just bump-patch         # 0.0.1 → 0.0.2
+just bump-minor         # 0.0.1 → 0.1.0
+just bump-major         # 0.0.1 → 1.0.0
 ```
 
 ### Formatting and Linting
@@ -95,11 +96,11 @@ These checks run both locally (via lefthook pre-commit hook) and in CI (GitHub A
 Version is stored exclusively in `META6.json` — the single source of truth. It is not duplicated anywhere in source code. The `--about` CLI option reads it at runtime.
 
 ```bash
-just version          # print current version
+just version            # print current version
 just version-set 0.1.0  # set version explicitly
-just bump-patch       # 0.0.1 → 0.0.2
-just bump-minor       # 0.0.1 → 0.1.0
-just bump-major       # 0.0.1 → 1.0.0
+just bump-patch         # 0.0.1 → 0.0.2
+just bump-minor         # 0.0.1 → 0.1.0
+just bump-major         # 0.0.1 → 1.0.0
 ```
 
 ## Development Plan

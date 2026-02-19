@@ -4,8 +4,8 @@
       <img src="https://raw.githubusercontent.com/wkusnierczyk/aigent-skills/main/graphics/aigent.png" alt="logo" width="300" />
     </td>
     <td>
-      <p><strong>AIgent::Skill</strong>:
-      A Raku library and CLI tool for managing AI agent skill definitions.</p>
+      <p><strong>aigent skills</strong>:
+      A library and CLI tool for managing AI agent skill definitions.</p>
       <p>Validates, parses, and generates prompts from skill metadata stored in <code>SKILL.md</code> files with YAML frontmatter. Also provides a skill builder for creating new skills from natural language specifications.</p>
     </td>
   </tr>

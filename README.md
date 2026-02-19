@@ -236,13 +236,13 @@ Use this skill when:
 
 The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
 
-| Rule | Spec | Python | Raku | Notes |
-|------|:----:|:------:|:----:|-------|
+| Rule | Spec | Python | AIgent | Notes |
+|------|:----:|:------:|:------:|-------|
 | Name required | ✅ | ✅ | ✅ | |
 | Name ≤ 64 chars | ✅ | ✅ | ✅ | |
 | Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
 | Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
-| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Raku: implicit ¹ |
+| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Implicit ¹ |
 | Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
 | Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
 | Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
@@ -251,7 +251,7 @@ The validator implements all rules from both the [Anthropic agent skill best pra
 | Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
 | Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
 | Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
-| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; Raku builder warns ² |
+| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; builder warns ² |
 
 ¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
 ² Checked by the builder (`check-body-warnings`), not by `validate`.

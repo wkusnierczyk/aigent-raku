@@ -5,50 +5,277 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 ## Table of Contents
 
 - [Status](#status)
-- [References](#references)
+- [Installation](#installation)
+- [Usage](#usage)
+- [SKILL.md Format](#skillmd-format)
+- [API Reference](#api-reference)
 - [Development](#development)
 - [CI/CD Workflows](#cicd-workflows)
 - [Development Plan](#development-plan)
+- [References](#references)
 - [About and License](#about-and-license)
 
 ## Status
 
-**M6 (CLI) complete.** M7 (Skill Builder) in progress.
+**M8 (Main Module & Documentation) complete.** M9 (Claude Code Plugin) in progress.
 
 See the [development plan](dev/plan.md) for full details.
 
-## References
+## Installation
 
-| Reference | Description |
+### From source
+
+```bash
+git clone git@github.com:wkusnierczyk/aigent-skills.git
+cd aigent-skills
+zef install .
+```
+
+### Dependencies only (for development)
+
+```bash
+zef install --deps-only . --/test
+```
+
+Requires [Rakudo](https://rakudo.org/) (latest release) and [zef](https://github.com/ugexe/zef).
+
+## Usage
+
+### Library API
+
+Import everything through the main module:
+
+```raku
+use AIgent::Skill;
+```
+
+**Validate a skill directory:**
+
+```raku
+my @errors = validate('my-skill'.IO);
+if @errors {
+    say "Validation errors:";
+    .say for @errors;
+} else {
+    say "Valid.";
+}
+```
+
+**Parse skill properties:**
+
+```raku
+my $props = read-properties('my-skill'.IO);
+say $props.name;         # "my-skill"
+say $props.description;  # "Does something useful..."
+```
+
+**Generate a system prompt from multiple skills:**
+
+```raku
+my IO::Path @dirs = ('skill-a'.IO, 'skill-b'.IO);
+my $prompt = to-prompt(@dirs);
+# Returns XML: <available_skills><skill>...</skill></available_skills>
+```
+
+**Build a new skill from a purpose statement:**
+
+```raku
+my $spec = SkillSpec.new(:purpose('Extract data from PDF files'));
+my $result = build-skill($spec, 'output'.IO);
+say $result.output-dir;       # output/extracting-data-from-pdf-files
+say $result.properties.name;  # extracting-data-from-pdf-files
+say $result.warnings;         # any LLM fallback warnings
+```
+
+### CLI
+
+```
+Usage: aigent <command> [options]
+
+Commands:
+  validate <dir>         Validate a skill directory
+  read-properties <dir>  Read skill properties as JSON
+  to-prompt <dir>...     Generate XML prompt from skill directories
+  build <purpose>        Build a new skill from natural language
+  init [dir]             Scaffold a new skill directory
+
+Options:
+  --about                Show project information
+  --no-llm               Force deterministic mode (build only)
+  --help                 Show this help message
+```
+
+**Validate:**
+
+```bash
+$ aigent validate my-skill/
+# (no output = valid)
+
+$ aigent validate bad-skill/
+Missing required field: name
+Missing required field: description
+```
+
+**Read properties (JSON output):**
+
+```bash
+$ aigent read-properties my-skill/
+{
+  "name": "my-skill",
+  "description": "Does something useful..."
+}
+```
+
+**Generate prompt:**
+
+```bash
+$ aigent to-prompt skill-a/ skill-b/
+<available_skills>
+  <skill>
+    <name>skill-a</name>
+    <description>...</description>
+    <location>skill-a/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>skill-b</name>
+    <description>...</description>
+    <location>skill-b/SKILL.md</location>
+  </skill>
+</available_skills>
+```
+
+**Build a new skill:**
+
+```bash
+$ aigent build "Process PDF files" --dir ./skills
+./skills/processing-pdf-files
+
+$ aigent build "Process PDF files" --no-llm --dir ./skills --license MIT
+./skills/processing-pdf-files
+```
+
+Build options: `--name`, `--dir` (default `.`), `--license`, `--compatibility`, `--allowed-tools`, `--no-llm`.
+
+With `ANTHROPIC_API_KEY` set and `--no-llm` absent, the builder uses Claude to generate richer names, descriptions, and body content. Without an API key or with `--no-llm`, it falls back to deterministic generation.
+
+**Scaffold a new skill (for manual editing):**
+
+```bash
+$ aigent init my-new-skill
+my-new-skill/SKILL.md
+
+$ cat my-new-skill/SKILL.md
+---
+name: my-skill
+description: Describe what this skill does. Use when [trigger conditions].
+---
+# My Skill
+
+Describe the skill's behavior and instructions here.
+```
+
+## SKILL.md Format
+
+Skills are defined in `SKILL.md` files with YAML frontmatter and a Markdown body:
+
+```markdown
+---
+name: extract-csv-data
+description: Extract and transform data from CSV files. Use when the user needs to parse, filter, or aggregate CSV data.
+license: MIT
+compatibility: claude
+allowed-tools: Read, Write, Bash
+---
+# Extract CSV Data
+
+Parse and transform CSV files into structured data...
+
+## When to Use
+
+Use this skill when:
+- The user asks to extract data from CSV files
+- The task involves filtering or aggregating tabular data
+
+## Instructions
+
+1. Read the CSV file...
+```
+
+### Frontmatter fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | Kebab-case identifier (e.g., `extract-csv-data`) |
+| `description` | yes | What the skill does and when to use it |
+| `license` | no | License identifier (e.g., `MIT`) |
+| `compatibility` | no | Compatible agent platforms |
+| `allowed-tools` | no | Tools the skill may use |
+
+### Validation rules
+
+- `name` and `description` are required
+- `name` must be a string (not a number, not empty)
+- `description` must be at least 10 characters
+- No [Anthropic reserved words](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) as field names
+- No XML-like tags (`<tag>`) in field values
+
+## API Reference
+
+### Classes
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `SkillProperties` | Models | Parsed skill metadata (name, description, license, ...) |
+| `SkillSpec` | Builder | Input spec for skill generation (purpose, optional overrides) |
+| `BuildResult` | Builder | Build output (properties, body, output-dir, warnings) |
+
+### Functions
+
+| Function | Module | Description |
+|----------|--------|-------------|
+| `find-skill-md(IO::Path $dir)` | Parser | Find `SKILL.md` in directory |
+| `parse-frontmatter(Str $content)` | Parser | Split YAML frontmatter and body |
+| `read-properties(IO::Path $dir)` | Parser | Parse directory into `SkillProperties` |
+| `validate(IO::Path $dir)` | Validator | Validate skill directory, return errors |
+| `validate-metadata(Hash %meta)` | Validator | Validate metadata hash, return errors |
+| `to-prompt(IO::Path @dirs)` | Prompt | Generate XML system prompt |
+| `derive-name(Str $purpose)` | Builder | Derive kebab-case name from purpose |
+| `generate-description(SkillSpec $spec)` | Builder | Generate description from spec |
+| `generate-body(SkillSpec $spec)` | Builder | Generate Markdown body |
+| `check-body-warnings(Str $body)` | Builder | Check body for style issues |
+| `assess-clarity(Str $purpose)` | Builder | Assess if purpose is clear enough |
+| `build-skill(SkillSpec $spec, IO::Path $dir)` | Builder | Full build pipeline |
+
+All builder functions accept optional `:$llm` (LLMClient) and `:@warnings` named parameters.
+
+### Exceptions
+
+| Exception | Description |
 |-----------|-------------|
-| [Agent Skills organization](https://github.com/agentskills) | umbrella for agent skills tooling |
-| [agentskills/agentskills](https://github.com/agentskills/agentskills) | Python reference implementation |
-| [anthropics/skills](https://github.com/anthropics/skills) | Anthropic's skills repository |
-| [openai/skills](https://github.com/openai/skills) | OpenAI's skills repository |
+| `X::AIgent::Skill` | Base exception |
+| `X::AIgent::Skill::Parse` | Parsing failures (missing file, invalid YAML) |
+| `X::AIgent::Skill::Build` | Build failures (unclear purpose, directory exists) |
+| `X::AIgent::Skill::Validation` | Validation errors (has `.errors` attribute) |
 
 ## Development
 
-### Step 1: Install Just
-
-[Just](https://github.com/casey/just) is the project's command runner. Install it first — all other setup steps use it.
-
-| Platform | Command |
-|----------|---------|
-| macOS | `brew install just` |
-| Linux (Debian/Ubuntu) | `sudo apt install just` or `sudo snap install --edge --classic just` |
-| Linux (Arch) | `sudo pacman -S just` |
-| Windows | `winget install Casey.Just` or `scoop install just` |
-| Any (via Cargo) | `cargo install just` |
-| Any (prebuilt) | Download from [releases](https://github.com/casey/just/releases) |
-
-See the [Just installation docs](https://just.systems/man/en/packages.html) for more options.
-
-### Step 2: Install Prerequisites
+### Prerequisites
 
 - [Rakudo](https://rakudo.org/) (latest release)
 - [zef](https://github.com/ugexe/zef) (module manager)
+- [Just](https://github.com/casey/just) (command runner)
 
-### Step 3: Clone and Set Up
+| Platform | Install Just |
+|----------|-------------|
+| macOS | `brew install just` |
+| Linux (Debian/Ubuntu) | `sudo apt install just` |
+| Linux (Arch) | `sudo pacman -S just` |
+| Windows | `winget install Casey.Just` |
+| Any (via Cargo) | `cargo install just` |
+
+See the [Just installation docs](https://just.systems/man/en/packages.html) for more options.
+
+### Setup
 
 ```bash
 git clone git@github.com:wkusnierczyk/aigent-skills.git
@@ -58,7 +285,29 @@ just setup
 
 `just setup` installs dependencies, installs [Lefthook](https://github.com/evilmartians/lefthook) (git hooks manager), and activates the hooks.
 
-> **Lefthook** is installed automatically by `just setup`. If you prefer to install it manually: `brew install lefthook` (macOS), `npm install -g @evilmartians/lefthook` (any platform), or download from [releases](https://github.com/evilmartians/lefthook/releases). See the [Lefthook docs](https://github.com/evilmartians/lefthook) for details.
+### Common Tasks
+
+```bash
+just setup              # install deps + lefthook + hooks
+just install            # install module locally (zef install .)
+just test               # run test suite
+just lint               # run lint-syntax + lint-meta
+just format             # whitespace scan (tabs, trailing spaces)
+just format-fix         # remove trailing whitespace from sources/tests
+just check              # format + lint + test
+```
+
+### Versioning
+
+Version is stored exclusively in `META6.json` — the single source of truth.
+
+```bash
+just version            # print current version
+just version-set 0.1.0  # set version explicitly
+just bump-patch         # 0.0.1 → 0.0.2
+just bump-minor         # 0.0.1 → 0.1.0
+just bump-major         # 0.0.1 → 1.0.0
+```
 
 ### Git Hooks (via Lefthook)
 
@@ -67,51 +316,28 @@ After `just setup`, the following hooks are active:
 - **pre-commit**: `just lint` — syntax check all source files
 - **pre-push**: `just test` — run full test suite
 
-### Common Tasks
-
-```bash
-just setup              # install deps + lefthook + hooks
-just install            # install module locally (zef install .)
-just test               # run test suite
-just lint               # run lint-syntax + lint-meta
-just lint-syntax        # compile-check all source files
-just lint-meta          # validate META6.json required fields
-just format             # whitespace scan (tabs, trailing spaces)
-just format-fix         # remove trailing whitespace from sources/tests
-just version            # print current version
-just version-set 0.1.0  # set version explicitly
-just bump-patch         # 0.0.1 → 0.0.2
-just bump-minor         # 0.0.1 → 0.1.0
-just bump-major         # 0.0.1 → 1.0.0
-```
-
-### Versioning
-
-Version is stored exclusively in `META6.json` — the single source of truth. It is not duplicated anywhere in source code.
-
-```bash
-just version            # print current version
-just version-set 0.1.0  # set version explicitly
-just bump-patch         # 0.0.1 → 0.0.2
-just bump-minor         # 0.0.1 → 0.1.0
-just bump-major         # 0.0.1 → 1.0.0
-```
-
 ## CI/CD Workflows
 
 All workflows live in `.github/workflows/`.
 
 ### CI (`ci.yml`)
 
-Runs on every push to `main` and on every pull request. Tests across a 3-OS matrix:
+Runs on every push to `main` and on every pull request.
 
 | Platform | Test runner |
 |----------|-------------|
 | Ubuntu | `just test` (prove6) |
 | macOS | `just test` (prove6) |
-| Windows | `zef test .` |
 
-Steps: checkout → setup Raku → cache deps → setup just (`extractions/setup-just@v3`) → install deps → lint → test.
+Steps: checkout → setup Raku → cache deps → setup just → install deps → lint → test.
+
+> **Note:** Windows is excluded due to an upstream issue with REA tar archive extraction on Windows ([Raku/REA#7](https://github.com/Raku/REA/issues/7)). The code is cross-platform; only the dependency installation fails.
+
+### Release (`release.yml`)
+
+Triggers on tag push (`v*`). Runs the full test suite, extracts release notes from `CHANGES.md`, and creates a GitHub Release.
+
+Tag convention: `v0.1.0` (semver with `v` prefix).
 
 ### Rerun Failed Jobs (`rerun-failed.yml`)
 
@@ -125,7 +351,7 @@ Automatically retries transient CI failures (CDN outages, flaky runners) with ex
 | 4 → 5 | 8 min | ~15 min |
 | 5 → 6 | 16 min | ~31 min |
 
-After 6 attempts, the workflow gives up with a visible warning annotation. Each retry only reruns *failed* jobs — successful jobs are not repeated.
+After 6 attempts, the workflow gives up with a visible warning annotation.
 
 ## Development Plan
 
@@ -145,11 +371,20 @@ The full implementation plan is in [`dev/plan.md`](dev/plan.md). Milestones and 
 | M8 | Main Module & Documentation | 2026-02-26 | [#20](https://github.com/wkusnierczyk/aigent-skills/issues/20), [#21](https://github.com/wkusnierczyk/aigent-skills/issues/21), [#24](https://github.com/wkusnierczyk/aigent-skills/issues/24), [#25](https://github.com/wkusnierczyk/aigent-skills/issues/25) |
 | M9 | Claude Code Plugin | 2026-02-27 | [#34](https://github.com/wkusnierczyk/aigent-skills/issues/34), [#35](https://github.com/wkusnierczyk/aigent-skills/issues/35), [#38](https://github.com/wkusnierczyk/aigent-skills/issues/38), [#36](https://github.com/wkusnierczyk/aigent-skills/issues/36), [#37](https://github.com/wkusnierczyk/aigent-skills/issues/37) |
 
+## References
+
+| Reference | Description |
+|-----------|-------------|
+| [Agent Skills organization](https://github.com/agentskills) | umbrella for agent skills tooling |
+| [agentskills/agentskills](https://github.com/agentskills/agentskills) | Python reference implementation |
+| [anthropics/skills](https://github.com/anthropics/skills) | Anthropic's skills repository |
+| [openai/skills](https://github.com/openai/skills) | OpenAI's skills repository |
+
 ## About and License
 
 ```
 aigent: AI Agent Skill Builder and Validator
-├─ version:    0.0.1
+├─ version:    0.1.0
 ├─ developer:  mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:     https://github.com/wkusnierczyk/aigent-skills
 └─ licence:    MIT https://opensource.org/licenses/MIT

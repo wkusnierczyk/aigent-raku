@@ -30,7 +30,7 @@ my $test-root = $*TMPDIR.add("aigent-test-{$*PID}-val");
 LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $test-root.e; try $test-root.rmdir; }
 
 # ===========================================================================
-# validate-metadata tests (18)
+# validate-metadata tests (20 assertions in 18 test blocks)
 # ===========================================================================
 
 # 1. Valid metadata returns no errors
@@ -168,7 +168,7 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
 }
 
 # ===========================================================================
-# validate tests (4)
+# validate tests (5)
 # ===========================================================================
 
 # 19. Valid skill directory returns no errors
@@ -221,28 +221,28 @@ if $*DISTRO.is-win {
 # i18n tests (4)
 # ===========================================================================
 
-# 23. Chinese characters in name accepted
+# 24. Chinese characters in name accepted
 {
     my %meta = name => '数据分析', description => 'Data analysis skill';
     my @errors = validate-metadata(%meta);
     is @errors.elems, 0, 'Chinese characters in name accepted';
 }
 
-# 24. Russian with hyphens accepted
+# 25. Russian with hyphens accepted
 {
     my %meta = name => 'анализ-данных', description => 'Data analysis skill';
     my @errors = validate-metadata(%meta);
     is @errors.elems, 0, 'Russian with hyphens in name accepted';
 }
 
-# 25. Uppercase Cyrillic rejected
+# 26. Uppercase Cyrillic rejected
 {
     my %meta = name => 'Анализ', description => 'Data analysis skill';
     my @errors = validate-metadata(%meta);
     ok @errors.elems > 0, 'uppercase Cyrillic in name rejected';
 }
 
-# 26. NFKC normalization: compatibility-equivalent characters normalized
+# 27. NFKC normalization: compatibility-equivalent characters normalized
 {
     # U+FB01 LATIN SMALL LIGATURE FI → "fi" after NFKC
     my %meta = name => "ﬁlter", description => 'Filter skill';

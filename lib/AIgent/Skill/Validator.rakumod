@@ -52,7 +52,7 @@ sub validate-name(%metadata, IO::Path $dir? --> List) {
     if $dir.defined {
         my $dir-name = $dir.basename.NFKC.Str;
         if $name ne $dir-name {
-            @errors.push("Name '{$name}' does not match directory name '{$dir.basename}'");
+            @errors.push("Name '{$name}' does not match directory name '{$dir-name}'");
         }
     }
 

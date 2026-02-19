@@ -75,10 +75,6 @@ sub validate-description(%metadata --> List) {
         return @errors;
     }
 
-    if %metadata<description>.trim.chars < 10 {
-        @errors.push("Description must be at least 10 characters ({%metadata<description>.trim.chars} given)");
-    }
-
     if %metadata<description>.chars > 1024 {
         @errors.push("Description exceeds maximum length of 1024 characters ({%metadata<description>.chars} given)");
     }

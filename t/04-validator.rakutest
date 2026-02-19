@@ -2,7 +2,7 @@ use v6.d;
 use Test;
 use AIgent::Skill::Validator;
 
-plan 40;
+plan 39;
 
 # ---------------------------------------------------------------------------
 # Helper: write a SKILL.md with given YAML hash into a temp directory
@@ -115,14 +115,7 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
     ok @errors.any.contains('match'), 'error mentions mismatch';
 }
 
-# 12. Description: too short (<10 chars)
-{
-    my %meta = name => 'my-skill', description => 'Too short';
-    my @errors = validate-metadata(%meta);
-    ok @errors.elems > 0, 'description under 10 chars rejected';
-}
-
-# 13. Description: too long (>1024 chars)
+# 12. Description: too long (>1024 chars)
 {
     my %meta = name => 'my-skill', description => 'x' x 1025;
     my @errors = validate-metadata(%meta);

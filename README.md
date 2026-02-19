@@ -229,30 +229,29 @@ Use this skill when:
 - `name` and `description` are required and non-empty
 - `name`: lowercase letters, digits, and hyphens only; max 64 chars
 - `name`: must not contain [reserved words](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) (`anthropic`, `claude`)
-- `description`: min 10, max 1024 chars; no XML-like tags (`<tag>`)
+- `description`: max 1024 chars; no XML-like tags (`<tag>`)
 - Unknown frontmatter fields are rejected
 
 ## Spec Compliance
 
-The validator is **fully compliant** with the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification, and exceeds the reference Python implementation (`agentskills/skills-ref`) in validation coverage.
+The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
 
-| Rule | Anthropic Spec | AIgent::Skill | Python Reference |
-|------|:-:|:-:|:-:|
-| Name required | ✅ | ✅ | ✅ |
-| Name ≤ 64 chars | ✅ | ✅ | ✅ |
-| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ |
-| Name: no leading/trailing/consecutive hyphens | ✅ | ✅ | ✅ |
-| Name: no XML tags | ✅ | ✅ ¹ | ❌ |
-| Name: no reserved words (anthropic, claude) | ✅ | ✅ | ❌ |
-| Name: Unicode normalization (NFKC) | — | ✅ | ❌ |
-| Name: matches directory name | — | ✅ | ✅ |
-| Description required | ✅ | ✅ | ✅ |
-| Description ≥ 10 chars | — | ✅ | ❌ |
-| Description ≤ 1024 chars | ✅ | ✅ | ✅ |
-| Description: no XML tags | ✅ | ✅ | ❌ |
-| Compatibility ≤ 500 chars | ✅ | ✅ | ✅ |
-| Unknown fields rejected | — | ✅ | ❌ |
-| Body ≤ 500 lines warning | ✅ | ✅ ² | ❌ |
+| Rule | Spec | Python | Raku | Notes |
+|------|:----:|:------:|:----:|-------|
+| Name required | ✅ | ✅ | ✅ | |
+| Name ≤ 64 chars | ✅ | ✅ | ✅ | |
+| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
+| Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Raku: implicit ¹ |
+| Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
+| Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
+| Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
+| Description required | ✅ | ✅ | ✅ | |
+| Description ≤ 1024 chars | ✅ | ✅ | ✅ | |
+| Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
+| Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
+| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; Raku builder warns ² |
 
 ¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
 ² Checked by the builder (`check-body-warnings`), not by `validate`.

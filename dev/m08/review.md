@@ -123,12 +123,12 @@
 | Code finding | Status |
 |---|---|
 | CR1-1: module namespace missing | Fixed: added `module AIgent::Skill {}` block declaration alongside `sub EXPORT()`. |
-| CR1-2: README validation rules inaccurate | Fixed: added description ≥10 chars check to validator (code matches spec), updated README and spec compliance table. |
+| CR1-2: README validation rules inaccurate | Fixed: corrected README validation rules section and rewrote spec compliance table comparing all three sources (Anthropic spec, Python reference, Raku). Description ≥10 chars was not in the official spec or Python reference, so was not added. |
 | CR1-3: README claims unsupported `:@warnings` | Fixed: added `:@warnings` to `check-body-warnings` and `build-skill`. README note clarified (`check-body-warnings` doesn't accept `:$llm`). |
 | CR2-1: reserved-words link wrong | Fixed: URL updated to best practices page, description corrected. |
 | CR2-2: redundant `done-testing` | Fixed: removed from `t/08-main.rakutest`. |
 
 ### Verification
 
-- `just test` passes (`Files=8, Tests=153`).
+- `just test` passes (`Files=8, Tests=152`).
 - `just lint` passes.

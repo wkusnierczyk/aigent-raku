@@ -54,3 +54,73 @@ Compact plan for a focused module. Tests-first ordering is good. XML format is c
 
 4. Low: issue #12 body still references old path `lib/Skills/Ref/Prompt.rakumod`.
    - Plan line 113 notes this for post-wave fix. Confirmed.
+
+## Code review
+
+- Date/time: 2026-02-19 09:29:16 CET
+- Branch: `dev/m05`
+- Scope: code review of `main..dev/m05`
+
+### Findings
+
+No functional defects or regressions found in this delta.
+
+### Residual risks / testing gaps
+
+1. Low: no explicit test that `<location>` is XML-escaped.
+   - `lib/AIgent/Skill/Prompt.rakumod:33` escapes location via `xml-escape($path.Str)`.
+   - `t/05-prompt.rakutest` validates description escaping (`t/05-prompt.rakutest:113`) but not a path containing escapable characters.
+
+2. Low: no explicit test for lowercase `skill.md` path preservation in `<location>`.
+   - Implementation resolves path via `find-skill-md` (`lib/AIgent/Skill/Prompt.rakumod:26`) and serializes it (`lib/AIgent/Skill/Prompt.rakumod:33`).
+   - Current tests only create `SKILL.md` (`t/05-prompt.rakutest:19`).
+
+### Verification
+
+- `just test` passes (`Files=5, Tests=86`).
+- `just lint` passes.
+
+## Code review 2
+
+- Date/time: 2026-02-19 09:28:48 CET
+- Branch: `dev/m05`
+- Scope: second-pass review of `main..dev/m05`
+
+### Plan review resolutions
+
+- PR1-1 / PR2-1 (`<location>` path): resolved — `Prompt.rakumod:26` calls `find-skill-md($dir)` to get the actual discovered path; `Prompt.rakumod:33` emits `$path.Str`, reflecting real filename casing.
+- PR1-2 (exception propagation test): resolved — test #9 (`05-prompt.rakutest:105-111`) verifies invalid directory throws `X::AIgent::Skill::Parse`.
+- PR1-4 (XML-escape test for location): partially addressed — test #10 tests special chars in description, but not in the path/location itself.
+- PR2-2 (validator test count): resolved — `t/04-validator.rakutest` has `plan 31` on main.
+- PR2-3 (body content exclusion): implementation matches plan — no body in XML. Design decision stands.
+
+### CR1 findings still open
+
+- CR1-1 (no location XML-escape test): still present, confirmed by this review.
+- CR1-2 (no lowercase `skill.md` location test): still present, confirmed by this review.
+
+### New findings
+
+1. Low: `find-skill-md` is called twice per directory.
+   - `Prompt.rakumod:26` calls `find-skill-md($dir)` for the location path.
+   - `Prompt.rakumod:27` calls `read-properties($dir)` which internally calls `find-skill-md` again.
+   - Each directory is scanned twice. Negligible cost but redundant.
+
+2. Low: `Nil` path is not explicitly guarded.
+   - `Prompt.rakumod:26` assigns `$path = find-skill-md($dir)` which can return `Nil`.
+   - Line 27's `read-properties($dir)` throws before `$path` is used on line 33, so `Nil` never reaches XML output.
+   - Correct by ordering, but fragile — reordering or removing the `read-properties` call would allow `Nil` to slip into the XML as the string `"Nil"`.
+
+### Verification
+
+- `just lint` passes (all 8 files compile, META6.json validates).
+- `just format` passes.
+- `just test` passes (Files=5, Tests=86: errors 11, models 13, parser 21, validator 31, prompt 10).
+
+### Included commits
+
+- `fd679a3` Merge task/m05-prompt into dev/m05
+- `16457ac` Implement Prompt module with xml-escape and to-prompt
+- `7a29ef2` Merge task/m05-tests into dev/m05
+- `ead278c` Add tests for Prompt module (10 assertions)
+- `e7e9da0` Add M5 plan and review for Prompt Generation module

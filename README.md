@@ -219,6 +219,29 @@ Use this skill when:
 - No [Anthropic reserved words](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) as field names
 - No XML-like tags (`<tag>`) in field values
 
+## Spec Compliance
+
+The validator is **fully compliant** with the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification, and exceeds the reference Python implementation (`agentskills/skills-ref`) in validation coverage.
+
+| Rule | Anthropic Spec | AIgent::Skill | Python Reference |
+|------|:-:|:-:|:-:|
+| Name required | ✅ | ✅ | ✅ |
+| Name ≤ 64 chars | ✅ | ✅ | ✅ |
+| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ |
+| Name: no leading/trailing/consecutive hyphens | ✅ | ✅ | ✅ |
+| Name: no XML tags | ✅ | ✅ ¹ | ❌ |
+| Name: no reserved words (anthropic, claude) | ✅ | ✅ | ❌ |
+| Name: Unicode normalization (NFKC) | — | ✅ | ❌ |
+| Name: matches directory name | — | ✅ | ✅ |
+| Description required | ✅ | ✅ | ✅ |
+| Description ≤ 1024 chars | ✅ | ✅ | ✅ |
+| Description: no XML tags | ✅ | ✅ | ❌ |
+| Compatibility ≤ 500 chars | ✅ | ✅ | ✅ |
+| Unknown fields rejected | — | ✅ | ❌ |
+| Body ≤ 500 lines warning | ✅ | ✅ | ❌ |
+
+¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
+
 ## API Reference
 
 ### Classes

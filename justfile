@@ -108,7 +108,7 @@ version:
     #!/usr/bin/env bash
     raku -MJSON::Fast -e 'say from-json(slurp "META6.json")<version>'
 
-# Set version in META6.json
+# Set version in META6.json and .claude-plugin/plugin.json
 version-set NEW_VERSION:
     #!/usr/bin/env bash
     raku -MJSON::Fast -e ' \
@@ -117,6 +117,14 @@ version-set NEW_VERSION:
         $m<version> = "{{ NEW_VERSION }}"; \
         spurt $path, to-json($m, :sorted-keys) ~ "\n"; \
     '
+    if [ -f .claude-plugin/plugin.json ]; then
+        raku -MJSON::Fast -e ' \
+            my $path = ".claude-plugin/plugin.json"; \
+            my $m = from-json(slurp $path); \
+            $m<version> = "{{ NEW_VERSION }}"; \
+            spurt $path, to-json($m, :sorted-keys) ~ "\n"; \
+        '
+    fi
     echo "Version set to {{ NEW_VERSION }}"
 
 # Increment patch version (0.0.1 → 0.0.2)

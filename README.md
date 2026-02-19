@@ -16,17 +16,42 @@
 
 ## Table of Contents
 
+- [Spec Compliance](#spec-compliance)
 - [Status](#status)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Claude Code Plugin](#claude-code-plugin)
 - [SKILL.md Format](#skillmd-format)
-- [Spec Compliance](#spec-compliance)
 - [API Reference](#api-reference)
 - [Development](#development)
 - [CI/CD Workflows](#cicd-workflows)
 - [Development Plan](#development-plan)
 - [References](#references)
 - [About and License](#about-and-license)
+
+## Spec Compliance
+
+The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
+
+| Rule | Spec | Python | AIgent | Notes |
+|------|:----:|:------:|:------:|-------|
+| Name required | ✅ | ✅ | ✅ | |
+| Name ≤ 64 chars | ✅ | ✅ | ✅ | |
+| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
+| Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Implicit ¹ |
+| Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
+| Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
+| Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
+| Description required | ✅ | ✅ | ✅ | |
+| Description ≤ 1024 chars | ✅ | ✅ | ✅ | |
+| Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
+| Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
+| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; builder warns ² |
+
+¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
+² Checked by the builder (`check-body-warnings`), not by `validate`.
 
 ## Status
 
@@ -36,21 +61,34 @@ See the [development plan](dev/plan.md) for full details.
 
 ## Installation
 
-### From source
+### Quick install (no dependencies)
+
+```bash
+curl -fsSL https://github.com/wkusnierczyk/aigent-skills/releases/latest/download/install.sh | bash
+```
+
+This downloads a self-contained bundle (~20 MB) for your platform and installs it to `~/.aigent`. No Raku, zef, or other dependencies required.
+
+Supported platforms: Linux x86_64, macOS arm64 (Apple Silicon), macOS x86_64 (Intel).
+
+### Manual download
+
+Download a bundle from the [latest release](https://github.com/wkusnierczyk/aigent-skills/releases/latest) and extract:
+
+```bash
+tar -xzf aigent-<version>-<platform>.tar.gz
+./aigent-<version>-<platform>/aigent --help
+```
+
+### From source (for development)
+
+Requires [Rakudo](https://rakudo.org/) (latest release) and [zef](https://github.com/ugexe/zef).
 
 ```bash
 git clone git@github.com:wkusnierczyk/aigent-skills.git
 cd aigent-skills
 zef install .
 ```
-
-### Dependencies only (for development)
-
-```bash
-zef install --deps-only . --/test
-```
-
-Requires [Rakudo](https://rakudo.org/) (latest release) and [zef](https://github.com/ugexe/zef).
 
 ## Usage
 
@@ -187,6 +225,38 @@ description: Describe what this skill does. Use when [trigger conditions].
 Describe the skill's behavior and instructions here.
 ```
 
+## Claude Code Plugin
+
+This repository is a [Claude Code plugin](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/extensions#custom-slash-commands). It provides two skills that Claude can use to build and validate `SKILL.md` files interactively.
+
+### Skills
+
+| Skill | Description |
+|-------|-------------|
+| `aigent-builder` | Generates skill definitions from natural language. Triggered by "create a skill", "build a skill", etc. |
+| `aigent-validator` | Validates skills against the Anthropic spec. Triggered by "validate a skill", "check a skill", etc. |
+
+Both skills operate in **hybrid mode**: they use the `aigent` CLI when it is installed, and fall back to Claude-based generation/validation when it is not. This means the plugin works out of the box — no installation required — but produces higher-quality results with `aigent` available.
+
+### Plugin installation
+
+To use the plugin in Claude Code, add it to your project's `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": []
+  },
+  "plugins": [
+    "wkusnierczyk/aigent-skills"
+  ]
+}
+```
+
+### Bundle for plugin use
+
+The self-contained bundles attached to each [release](https://github.com/wkusnierczyk/aigent-skills/releases/latest) include the `aigent` binary, the plugin manifest, and both skills. After installing a bundle (see [Installation](#installation)), the `aigent` CLI is available for the plugin to call without any Raku dependency.
+
 ## SKILL.md Format
 
 Skills are defined in `SKILL.md` files with YAML frontmatter and a Markdown body:
@@ -231,30 +301,6 @@ Use this skill when:
 - `name`: must not contain [reserved words](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) (`anthropic`, `claude`)
 - `description`: max 1024 chars; no XML-like tags (`<tag>`)
 - Unknown frontmatter fields are rejected
-
-## Spec Compliance
-
-The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
-
-| Rule | Spec | Python | AIgent | Notes |
-|------|:----:|:------:|:------:|-------|
-| Name required | ✅ | ✅ | ✅ | |
-| Name ≤ 64 chars | ✅ | ✅ | ✅ | |
-| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
-| Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
-| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Implicit ¹ |
-| Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
-| Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
-| Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
-| Description required | ✅ | ✅ | ✅ | |
-| Description ≤ 1024 chars | ✅ | ✅ | ✅ | |
-| Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
-| Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
-| Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
-| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; builder warns ² |
-
-¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
-² Checked by the builder (`check-body-warnings`), not by `validate`.
 
 ## API Reference
 
@@ -372,7 +418,20 @@ Steps: checkout → setup Raku → cache deps → setup just → install deps �
 
 ### Release (`release.yml`)
 
-Triggers on tag push (`v*`). Runs the full test suite, extracts release notes from `CHANGES.md`, and creates a GitHub Release.
+Triggers on tag push (`v*`). Three-stage pipeline:
+
+1. **Test** — runs the full test suite on Ubuntu
+2. **Bundle** — builds self-contained tarballs for each platform (matrix):
+
+   | Runner | Platform | Bundle |
+   |--------|----------|--------|
+   | `ubuntu-latest` | Linux x86_64 | `aigent-<ver>-linux-x86_64.tar.gz` |
+   | `macos-latest` | macOS arm64 | `aigent-<ver>-macos-arm64.tar.gz` |
+   | `macos-13` | macOS x86_64 | `aigent-<ver>-macos-x86_64.tar.gz` |
+
+3. **Release** — extracts changelog from `CHANGES.md`, creates a GitHub Release with all bundles and `install.sh` attached
+
+Each bundle (~20 MB) includes relocatable Rakudo, all dependencies, and the `aigent` wrapper. No Raku installation required.
 
 Tag convention: `v0.1.0` (semver with `v` prefix).
 

@@ -5,11 +5,7 @@ use lib 'lib';
 # Allow named parameters anywhere on the command line (e.g. build <purpose> --no-llm)
 my %*SUB-MAIN-OPTS = :named-anywhere;
 
-use AIgent::Skill::Validator;
-use AIgent::Skill::Parser;
-use AIgent::Skill::Prompt;
-use AIgent::Skill::Builder;
-use AIgent::Skill::Errors;
+use AIgent::Skill;
 use JSON::Fast;
 
 # ---------------------------------------------------------------------------
@@ -70,15 +66,7 @@ multi MAIN('to-prompt', *@skill-dirs where *.elems > 0) {
 }
 
 multi MAIN(Bool :$about!) {
-    # Try distribution metadata first (works when installed via zef),
-    # fall back to filesystem (works when running from source checkout)
-    my %meta;
-    if $?DISTRIBUTION.defined && $?DISTRIBUTION.meta {
-        %meta = $?DISTRIBUTION.meta;
-    } else {
-        my $meta-path = $*PROGRAM.parent(2).add('META6.json');
-        %meta = from-json($meta-path.slurp);
-    }
+    my %meta = meta-info();
     say "{%meta<name>}: {%meta<description>}";
     say "├─ version:    {%meta<version>}";
     say "├─ developer:  {%meta<auth>}";

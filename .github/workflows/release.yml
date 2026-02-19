@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,6 +28,45 @@ jobs:
       - name: Run tests
         run: prove6 -Ilib -l t/
 
+  bundle:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux-x86_64
+          - runner: macos-latest
+            platform: macos-arm64
+          - runner: macos-13
+            platform: macos-x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build bundle
+        run: bash bundle.sh ${{ matrix.platform }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.platform }}
+          path: dist/*.tar.gz
+
+  release:
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: bundle-*
+          merge-multiple: true
+
       - name: Extract changelog
         id: changelog
         run: |
@@ -44,3 +83,6 @@ jobs:
         with:
           body_path: release_notes.md
           generate_release_notes: false
+          files: |
+            artifacts/*.tar.gz
+            install.sh

@@ -67,7 +67,7 @@ is xml-escape('a & b < c > d "e"'), 'a &amp; b &lt; c &gt; d &quot;e&quot;', 'al
       <skill>
         <name>my-skill</name>
         <description>A test skill</description>
-        <location>$location</location>
+        <location>{$location}</location>
       </skill>
     </available_skills>
     END
@@ -89,12 +89,12 @@ is xml-escape('a & b < c > d "e"'), 'a &amp; b &lt; c &gt; d &quot;e&quot;', 'al
       <skill>
         <name>alpha</name>
         <description>First skill</description>
-        <location>$loc-a</location>
+        <location>{$loc-a}</location>
       </skill>
       <skill>
         <name>beta</name>
         <description>Second skill</description>
-        <location>$loc-b</location>
+        <location>{$loc-b}</location>
       </skill>
     </available_skills>
     END

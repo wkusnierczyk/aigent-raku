@@ -162,7 +162,7 @@ After all waves, on `dev/m04`:
 
 ```bash
 just lint                              # passes
-just test                              # all tests pass (01-errors: 11, 02-models: 13, 03-parser: 21, 04-validator: 26)
+just test                              # all tests pass (01-errors: 11, 02-models: 13, 03-parser: 21, 04-validator: 30)
 raku -Ilib -e '
     use AIgent::Skill::Validator;
     my @errors = validate("/path/to/skill".IO);

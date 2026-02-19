@@ -2,7 +2,7 @@ use v6.d;
 use Test;
 use AIgent::Skill::Validator;
 
-plan 26;
+plan 30;
 
 # ---------------------------------------------------------------------------
 # Helper: write a SKILL.md with given YAML hash into a temp directory

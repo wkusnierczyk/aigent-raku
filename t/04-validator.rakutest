@@ -1,0 +1,241 @@
+use v6.d;
+use Test;
+use AIgent::Skill::Validator;
+
+plan 26;
+
+# ---------------------------------------------------------------------------
+# Helper: write a SKILL.md with given YAML hash into a temp directory
+# ---------------------------------------------------------------------------
+sub make-skill-dir(Str $dirname, %frontmatter --> IO::Path) {
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-val");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add($dirname);
+    $dir.mkdir unless $dir.e;
+
+    my $yaml = %frontmatter.kv.map(-> $k, $v {
+        given $v {
+            when Associative { "$k:\n" ~ $v.kv.map(-> $kk, $vv { "  $kk: $vv" }).join("\n") }
+            when Positional  { "$k:\n" ~ $v.map({ "  - $_" }).join("\n") }
+            default          { "$k: $v" }
+        }
+    }).join("\n");
+
+    $dir.add('SKILL.md').spurt("---\n$yaml\n---\nBody text.\n");
+    $dir;
+}
+
+# Temp root for cleanup
+my $test-root = $*TMPDIR.add("aigent-test-{$*PID}-val");
+LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $test-root.e; try $test-root.rmdir; }
+
+# ===========================================================================
+# validate-metadata tests (18)
+# ===========================================================================
+
+# 1. Valid metadata returns no errors
+{
+    my %meta = name => 'my-skill', description => 'A test skill';
+    my $dir = make-skill-dir('my-skill', %meta);
+    my @errors = validate-metadata(%meta, $dir);
+    is @errors.elems, 0, 'valid metadata returns no errors';
+}
+
+# 2. Missing name
+{
+    my %meta = description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'missing name returns error';
+    ok @errors.any.contains('name'), 'error mentions name';
+}
+
+# 3. Missing description
+{
+    my %meta = name => 'my-skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'missing description returns error';
+    ok @errors.any.contains('description'), 'error mentions description';
+}
+
+# 4. Name: uppercase letters rejected
+{
+    my %meta = name => 'My-Skill', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'uppercase name rejected';
+}
+
+# 5. Name: too long (>64 chars)
+{
+    my %meta = name => 'a' x 65, description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'name exceeding 64 chars rejected';
+}
+
+# 6. Name: leading hyphen rejected
+{
+    my %meta = name => '-my-skill', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'leading hyphen in name rejected';
+}
+
+# 7. Name: trailing hyphen rejected
+{
+    my %meta = name => 'my-skill-', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'trailing hyphen in name rejected';
+}
+
+# 8. Name: consecutive hyphens rejected
+{
+    my %meta = name => 'my--skill', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'consecutive hyphens in name rejected';
+}
+
+# 9. Name: underscore rejected
+{
+    my %meta = name => 'my_skill', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'underscore in name rejected';
+}
+
+# 10. Name: space rejected
+{
+    my %meta = name => 'my skill', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'space in name rejected';
+}
+
+# 11. Name: directory mismatch rejected
+{
+    my %meta = name => 'foo', description => 'A test skill';
+    my $dir = make-skill-dir('bar', %meta);
+    my @errors = validate-metadata(%meta, $dir);
+    ok @errors.elems > 0, 'name/directory mismatch rejected';
+    ok @errors.any.contains('match'), 'error mentions mismatch';
+}
+
+# 12. Description: too long (>1024 chars)
+{
+    my %meta = name => 'my-skill', description => 'x' x 1025;
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'description exceeding 1024 chars rejected';
+}
+
+# 13. Compatibility: too long (>500 chars)
+{
+    my %meta = name => 'my-skill', description => 'A test skill', compatibility => 'x' x 501;
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'compatibility exceeding 500 chars rejected';
+}
+
+# 14. All known optional fields accepted
+{
+    my %meta = name => 'my-skill', description => 'A test skill',
+               license => 'MIT', compatibility => 'claude', allowed-tools => 'Bash',
+               metadata => { author => 'test' };
+    my @errors = validate-metadata(%meta);
+    is @errors.elems, 0, 'all known optional fields accepted without errors';
+}
+
+# 15. Unknown top-level field rejected
+{
+    my %meta = name => 'my-skill', description => 'A test skill', frobnicate => 'yes';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'unknown field rejected';
+    ok @errors.any.contains('frobnicate'), 'error mentions the unknown field name';
+}
+
+# 16. Name with wrong YAML type rejected
+{
+    my %meta = name => 123, description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'non-string name rejected';
+}
+
+# 17. Description with wrong YAML type rejected
+{
+    my %meta = name => 'my-skill', description => ['a', 'b'];
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'non-string description rejected';
+}
+
+# 18. Compatibility with wrong YAML type rejected
+{
+    my %meta = name => 'my-skill', description => 'A test skill', compatibility => { x => 1 };
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'non-string compatibility rejected';
+}
+
+# ===========================================================================
+# validate tests (4)
+# ===========================================================================
+
+# 19. Valid skill directory returns no errors
+{
+    my %meta = name => 'valid-skill', description => 'A valid skill';
+    my $dir = make-skill-dir('valid-skill', %meta);
+    my @errors = validate($dir);
+    is @errors.elems, 0, 'valid skill directory returns no errors';
+}
+
+# 20. Nonexistent path returns error
+{
+    my $dir = $*TMPDIR.add("aigent-test-nonexistent-{$*PID}");
+    my @errors = validate($dir);
+    ok @errors.elems > 0, 'nonexistent path returns error';
+}
+
+# 21. Path is a file, not a directory
+{
+    my $file = $*TMPDIR.add("aigent-test-{$*PID}-val-file");
+    $file.spurt("not a directory");
+    LEAVE { $file.unlink if $file.e }
+    my @errors = validate($file);
+    ok @errors.elems > 0, 'file path (not directory) returns error';
+}
+
+# 22. Missing SKILL.md returns error
+{
+    my $dir = $*TMPDIR.add("aigent-test-{$*PID}-val-empty");
+    $dir.mkdir unless $dir.e;
+    LEAVE { try $dir.rmdir }
+    my @errors = validate($dir);
+    ok @errors.elems > 0, 'missing SKILL.md returns error';
+}
+
+# ===========================================================================
+# i18n tests (4)
+# ===========================================================================
+
+# 23. Chinese characters in name accepted
+{
+    my %meta = name => '数据分析', description => 'Data analysis skill';
+    my @errors = validate-metadata(%meta);
+    is @errors.elems, 0, 'Chinese characters in name accepted';
+}
+
+# 24. Russian with hyphens accepted
+{
+    my %meta = name => 'анализ-данных', description => 'Data analysis skill';
+    my @errors = validate-metadata(%meta);
+    is @errors.elems, 0, 'Russian with hyphens in name accepted';
+}
+
+# 25. Uppercase Cyrillic rejected
+{
+    my %meta = name => 'Анализ', description => 'Data analysis skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'uppercase Cyrillic in name rejected';
+}
+
+# 26. NFKC normalization: compatibility-equivalent characters normalized
+{
+    # U+FB01 LATIN SMALL LIGATURE FI → "fi" after NFKC
+    my %meta = name => "ﬁlter", description => 'Filter skill';
+    my @errors = validate-metadata(%meta);
+    # After NFKC normalization, "ﬁlter" becomes "filter" — valid lowercase
+    is @errors.elems, 0, 'NFKC-normalized name accepted (ﬁ → fi)';
+}
+
+done-testing;

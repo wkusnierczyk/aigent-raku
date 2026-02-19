@@ -1,0 +1,11 @@
+{
+  "author": {
+    "email": "waclaw.kusnierczyk@gmail.com",
+    "name": "Waclaw Kusnierczyk"
+  },
+  "category": "development",
+  "description": "AI Agent Skill Builder and Validator. Create and validate SKILL.md definitions following Anthropic best practices.",
+  "homepage": "https://github.com/wkusnierczyk/aigent-skills",
+  "name": "aigent-skills",
+  "version": "0.1.0"
+}

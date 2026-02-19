@@ -1,0 +1,134 @@
+use v6.d;
+use Test;
+use JSON::Fast;
+use AIgent::Skill::Parser;
+use AIgent::Skill::Validator;
+
+plan 15;
+
+# ---------------------------------------------------------------------------
+# Paths (relative to repo root, where prove6 runs)
+# ---------------------------------------------------------------------------
+
+my $repo-root     = $*PROGRAM.parent.parent;
+my $plugin-json   = $repo-root.add('.claude-plugin/plugin.json');
+my $meta-json     = $repo-root.add('META6.json');
+my $builder-dir   = $repo-root.add('skills/aigent-builder');
+my $validator-dir = $repo-root.add('skills/aigent-validator');
+
+# ===========================================================================
+# Plugin manifest tests (3)
+# ===========================================================================
+
+# 1. plugin.json is well-formed JSON with required fields
+{
+    ok $plugin-json.e, 'plugin.json exists';
+}
+
+# 2. plugin.json has required fields
+{
+    my %plugin = from-json($plugin-json.slurp);
+    ok %plugin<name>.defined && %plugin<description>.defined
+        && %plugin<version>.defined && %plugin<author>.defined,
+        'plugin.json has required fields (name, description, version, author)';
+}
+
+# 3. plugin.json version matches META6.json
+{
+    my %plugin = from-json($plugin-json.slurp);
+    my %meta   = from-json($meta-json.slurp);
+    is %plugin<version>, %meta<version>,
+        'plugin.json version matches META6.json';
+}
+
+# ===========================================================================
+# Builder skill tests (5)
+# ===========================================================================
+
+# 4. Builder SKILL.md exists and parses
+{
+    my $props = read-properties($builder-dir);
+    is $props.name, 'aigent-builder', 'builder SKILL.md parses with correct name';
+}
+
+# 5. Builder SKILL.md passes validation
+{
+    my @errors = validate($builder-dir);
+    is @errors.elems, 0, 'builder SKILL.md passes validation';
+}
+
+# 6. Builder SKILL.md has allowed-tools
+{
+    my $props = read-properties($builder-dir);
+    ok $props.allowed-tools.defined && $props.allowed-tools.chars > 0,
+        'builder SKILL.md has allowed-tools';
+}
+
+# 7. Builder body contains hybrid detection command
+{
+    my ($meta, $body) = parse-frontmatter($builder-dir.add('SKILL.md').slurp);
+    ok $body.contains('command -v aigent'),
+        'builder body contains "command -v aigent"';
+}
+
+# 8. Builder body contains aigent build invocation
+{
+    my ($meta, $body) = parse-frontmatter($builder-dir.add('SKILL.md').slurp);
+    ok $body.contains('aigent build'),
+        'builder body contains "aigent build"';
+}
+
+# ===========================================================================
+# Validator skill tests (5)
+# ===========================================================================
+
+# 9. Validator SKILL.md exists and parses
+{
+    my $props = read-properties($validator-dir);
+    is $props.name, 'aigent-validator', 'validator SKILL.md parses with correct name';
+}
+
+# 10. Validator SKILL.md passes validation
+{
+    my @errors = validate($validator-dir);
+    is @errors.elems, 0, 'validator SKILL.md passes validation';
+}
+
+# 11. Validator SKILL.md has allowed-tools
+{
+    my $props = read-properties($validator-dir);
+    ok $props.allowed-tools.defined && $props.allowed-tools.chars > 0,
+        'validator SKILL.md has allowed-tools';
+}
+
+# 12. Validator body contains hybrid detection command
+{
+    my ($meta, $body) = parse-frontmatter($validator-dir.add('SKILL.md').slurp);
+    ok $body.contains('command -v aigent'),
+        'validator body contains "command -v aigent"';
+}
+
+# 13. Validator body contains aigent validate invocation
+{
+    my ($meta, $body) = parse-frontmatter($validator-dir.add('SKILL.md').slurp);
+    ok $body.contains('aigent validate'),
+        'validator body contains "aigent validate"';
+}
+
+# ===========================================================================
+# Fallback mode tests (2)
+# ===========================================================================
+
+# 14. Builder mentions fallback mode
+{
+    my ($meta, $body) = parse-frontmatter($builder-dir.add('SKILL.md').slurp);
+    ok $body.contains('Without aigent') || $body.contains('fallback'),
+        'builder body mentions fallback mode';
+}
+
+# 15. Validator mentions fallback mode
+{
+    my ($meta, $body) = parse-frontmatter($validator-dir.add('SKILL.md').slurp);
+    ok $body.contains('Without aigent') || $body.contains('fallback'),
+        'validator body mentions fallback mode';
+}

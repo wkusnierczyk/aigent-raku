@@ -44,3 +44,4 @@ jobs:
         with:
           body_path: release_notes.md
           generate_release_notes: false
+          files: install.sh

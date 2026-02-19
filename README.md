@@ -16,17 +16,41 @@
 
 ## Table of Contents
 
+- [Spec Compliance](#spec-compliance)
 - [Status](#status)
 - [Installation](#installation)
 - [Usage](#usage)
 - [SKILL.md Format](#skillmd-format)
-- [Spec Compliance](#spec-compliance)
 - [API Reference](#api-reference)
 - [Development](#development)
 - [CI/CD Workflows](#cicd-workflows)
 - [Development Plan](#development-plan)
 - [References](#references)
 - [About and License](#about-and-license)
+
+## Spec Compliance
+
+The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
+
+| Rule | Spec | Python | AIgent | Notes |
+|------|:----:|:------:|:------:|-------|
+| Name required | ✅ | ✅ | ✅ | |
+| Name ≤ 64 chars | ✅ | ✅ | ✅ | |
+| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
+| Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Implicit ¹ |
+| Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
+| Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
+| Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
+| Description required | ✅ | ✅ | ✅ | |
+| Description ≤ 1024 chars | ✅ | ✅ | ✅ | |
+| Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
+| Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
+| Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
+| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; builder warns ² |
+
+¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
+² Checked by the builder (`check-body-warnings`), not by `validate`.
 
 ## Status
 
@@ -231,30 +255,6 @@ Use this skill when:
 - `name`: must not contain [reserved words](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) (`anthropic`, `claude`)
 - `description`: max 1024 chars; no XML-like tags (`<tag>`)
 - Unknown frontmatter fields are rejected
-
-## Spec Compliance
-
-The validator implements all rules from both the [Anthropic agent skill best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) specification and the reference Python implementation ([`agentskills/skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
-
-| Rule | Spec | Python | AIgent | Notes |
-|------|:----:|:------:|:------:|-------|
-| Name required | ✅ | ✅ | ✅ | |
-| Name ≤ 64 chars | ✅ | ✅ | ✅ | |
-| Name: lowercase letters, numbers, hyphens | ✅ | ✅ | ✅ | |
-| Name: no leading/trailing/consecutive hyphens | — | ✅ | ✅ | Not in spec; both implementations enforce |
-| Name: no XML tags | ✅ | — | ✅ | Spec requires; Python omits. Implicit ¹ |
-| Name: no reserved words (`anthropic`, `claude`) | ✅ | — | ✅ | Spec requires; Python omits |
-| Name: NFKC normalization | — | ✅ | ✅ | Both implementations normalize |
-| Name: matches directory name | — | ✅ | ✅ | Both implementations enforce |
-| Description required | ✅ | ✅ | ✅ | |
-| Description ≤ 1024 chars | ✅ | ✅ | ✅ | |
-| Description: no XML tags | ✅ | — | ✅ | Spec requires; Python omits |
-| Compatibility ≤ 500 chars | — | ✅ | ✅ | Not in spec; both implementations enforce |
-| Unknown fields rejected | — | ✅ | ✅ | Both implementations enforce |
-| Body ≤ 500 lines warning | ✅ | — | ✅ | Spec guideline; builder warns ² |
-
-¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
-² Checked by the builder (`check-body-warnings`), not by `validate`.
 
 ## API Reference
 

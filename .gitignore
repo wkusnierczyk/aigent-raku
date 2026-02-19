@@ -3,6 +3,9 @@
 lib/.precomp/
 *.rakutest.out
 
+# Builder test artifacts
+extracting-data/
+
 # Editor
 *~
 *.swp

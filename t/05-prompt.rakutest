@@ -1,0 +1,121 @@
+use v6.d;
+use Test;
+use AIgent::Skill::Prompt;
+use AIgent::Skill::Errors;
+
+plan 10;
+
+# ---------------------------------------------------------------------------
+# Helper: create a skill directory with a SKILL.md containing given fields
+# ---------------------------------------------------------------------------
+sub make-skill-dir(Str $name, Str $description --> IO::Path) {
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-prompt");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add($name);
+    $dir.mkdir unless $dir.e;
+
+    # Use single-quoted YAML for description to handle special characters safely
+    my $esc-desc = $description.subst("'", "''", :g);
+    $dir.add('SKILL.md').spurt("---\nname: $name\ndescription: '$esc-desc'\n---\nBody text.\n");
+
+    $dir;
+}
+
+# Temp root for cleanup
+my $test-root = $*TMPDIR.add("aigent-test-{$*PID}-prompt");
+LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $test-root.e; try $test-root.rmdir; }
+
+# ===========================================================================
+# xml-escape tests (5)
+# ===========================================================================
+
+# 1. Ampersand escaped
+is xml-escape('a & b'), 'a &amp; b', 'ampersand escaped';
+
+# 2. Less-than escaped
+is xml-escape('a < b'), 'a &lt; b', 'less-than escaped';
+
+# 3. Greater-than escaped
+is xml-escape('a > b'), 'a &gt; b', 'greater-than escaped';
+
+# 4. Double quote escaped
+is xml-escape('a "b" c'), 'a &quot;b&quot; c', 'double quote escaped';
+
+# 5. Combined: all special chars
+is xml-escape('a & b < c > d "e"'), 'a &amp; b &lt; c &gt; d &quot;e&quot;', 'all special chars escaped';
+
+# ===========================================================================
+# to-prompt tests (5)
+# ===========================================================================
+
+# 6. Empty list produces wrapper only
+{
+    my IO::Path @dirs;
+    is to-prompt(@dirs), "<available_skills>\n</available_skills>",
+        'empty list produces wrapper only';
+}
+
+# 7. Single skill directory produces XML with one skill element
+{
+    my $dir = make-skill-dir('my-skill', 'A test skill');
+    my IO::Path @dirs = $dir;
+    my $xml = to-prompt(@dirs);
+    my $location = $dir.add('SKILL.md').Str;
+
+    my $expected = qq:to/END/.chomp;
+    <available_skills>
+      <skill>
+        <name>my-skill</name>
+        <description>A test skill</description>
+        <location>$location</location>
+      </skill>
+    </available_skills>
+    END
+
+    is $xml, $expected, 'single skill directory produces correct XML';
+}
+
+# 8. Multiple skill directories produce multiple skill elements in order
+{
+    my $dir-a = make-skill-dir('alpha', 'First skill');
+    my $dir-b = make-skill-dir('beta', 'Second skill');
+    my IO::Path @dirs = $dir-a, $dir-b;
+    my $xml = to-prompt(@dirs);
+    my $loc-a = $dir-a.add('SKILL.md').Str;
+    my $loc-b = $dir-b.add('SKILL.md').Str;
+
+    my $expected = qq:to/END/.chomp;
+    <available_skills>
+      <skill>
+        <name>alpha</name>
+        <description>First skill</description>
+        <location>$loc-a</location>
+      </skill>
+      <skill>
+        <name>beta</name>
+        <description>Second skill</description>
+        <location>$loc-b</location>
+      </skill>
+    </available_skills>
+    END
+
+    is $xml, $expected, 'multiple skills produce ordered XML elements';
+}
+
+# 9. Invalid directory throws X::AIgent::Skill::Parse
+{
+    my $bad-dir = $*TMPDIR.add("aigent-test-{$*PID}-prompt-nonexistent");
+    my IO::Path @dirs = $bad-dir;
+    throws-like { to-prompt(@dirs) }, X::AIgent::Skill::Parse,
+        'invalid directory throws X::AIgent::Skill::Parse';
+}
+
+# 10. Skill with special characters in description produces XML entities
+{
+    my $dir = make-skill-dir('escape-test', 'Uses &, <, > and "quotes"');
+    my IO::Path @dirs = $dir;
+    my $xml = to-prompt(@dirs);
+
+    ok $xml.contains('<description>Uses &amp;, &lt;, &gt; and &quot;quotes&quot;</description>'),
+        'special characters in description are XML-escaped';
+}

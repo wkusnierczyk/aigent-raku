@@ -2,7 +2,7 @@ use v6.d;
 use Test;
 use AIgent::Skill::Validator;
 
-plan 30;
+plan 31;
 
 # ---------------------------------------------------------------------------
 # Helper: write a SKILL.md with given YAML hash into a temp directory
@@ -202,6 +202,19 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
     LEAVE { try $dir.rmdir }
     my @errors = validate($dir);
     ok @errors.elems > 0, 'missing SKILL.md returns error';
+}
+
+# 23. Unreadable directory returns error (not throws) — Unix only
+if $*DISTRO.is-win {
+    skip 'chmod not supported on Windows', 1;
+} else {
+    my $dir = $*TMPDIR.add("aigent-test-{$*PID}-val-noperm");
+    $dir.mkdir unless $dir.e;
+    $dir.add('SKILL.md').spurt("---\nname: test\n---\n");
+    run('chmod', '000', $dir.Str);
+    LEAVE { run('chmod', '755', $dir.Str) if $dir.e; try { $dir.dir».unlink; $dir.rmdir } }
+    my @errors = validate($dir);
+    ok @errors.elems > 0, 'unreadable directory returns error (not throws)';
 }
 
 # ===========================================================================

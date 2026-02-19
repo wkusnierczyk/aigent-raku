@@ -128,16 +128,15 @@ sub validate(IO::Path $dir --> List) is export {
         return @errors;
     }
 
-    # Find SKILL.md
-    my $path = find-skill-md($dir);
-    unless $path.defined {
-        @errors.push("No SKILL.md found in {$dir}");
-        return @errors;
-    }
-
-    # Read and parse — catch all exceptions, convert to error strings
+    # Find, read, parse — catch all exceptions, convert to error strings
     my %metadata;
     try {
+        my $path = find-skill-md($dir);
+        unless $path.defined {
+            @errors.push("No SKILL.md found in {$dir}");
+            return @errors;
+        }
+
         my $content = $path.slurp;
         my @result = parse-frontmatter($content);
         %metadata = @result[0];
@@ -147,7 +146,7 @@ sub validate(IO::Path $dir --> List) is export {
                 return @errors;
             }
             default {
-                @errors.push("Failed to read {$path}: {.message}");
+                @errors.push(.message);
                 return @errors;
             }
         }

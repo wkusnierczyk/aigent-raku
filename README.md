@@ -7,12 +7,13 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 - [Status](#status)
 - [References](#references)
 - [Development](#development)
+- [CI/CD Workflows](#cicd-workflows)
 - [Development Plan](#development-plan)
 - [About and License](#about-and-license)
 
 ## Status
 
-**M2 (Core Data Model & Errors) complete.**
+**M3 (Parser) complete.**
 
 See the [development plan](dev/plan.md) for full details.
 
@@ -95,6 +96,36 @@ just bump-patch         # 0.0.1 → 0.0.2
 just bump-minor         # 0.0.1 → 0.1.0
 just bump-major         # 0.0.1 → 1.0.0
 ```
+
+## CI/CD Workflows
+
+All workflows live in `.github/workflows/`.
+
+### CI (`ci.yml`)
+
+Runs on every push to `main` and on every pull request. Tests across a 3-OS matrix:
+
+| Platform | Just install | Test runner |
+|----------|-------------|-------------|
+| Ubuntu | `just.systems/install.sh` | `just test` (prove6) |
+| macOS | `just.systems/install.sh` | `just test` (prove6) |
+| Windows | `choco install just` | `zef test .` |
+
+Steps: checkout → setup Raku → cache deps → install just → install deps → lint → test.
+
+### Rerun Failed Jobs (`rerun-failed.yml`)
+
+Automatically retries transient CI failures (CDN outages, flaky runners) with exponential backoff. Triggers on `workflow_run: completed` when CI fails.
+
+| Attempt | Delay | Cumulative |
+|---------|-------|------------|
+| 1 → 2 | 1 min | ~1 min |
+| 2 → 3 | 2 min | ~3 min |
+| 3 → 4 | 4 min | ~7 min |
+| 4 → 5 | 8 min | ~15 min |
+| 5 → 6 | 16 min | ~31 min |
+
+After 6 attempts, the workflow gives up with a visible warning annotation. Each retry only reruns *failed* jobs — successful jobs are not repeated.
 
 ## Development Plan
 

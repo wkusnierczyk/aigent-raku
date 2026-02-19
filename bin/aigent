@@ -2,9 +2,14 @@
 
 use lib 'lib';
 
+# Allow named parameters anywhere on the command line (e.g. build <purpose> --no-llm)
+my %*SUB-MAIN-OPTS = :named-anywhere;
+
 use AIgent::Skill::Validator;
 use AIgent::Skill::Parser;
 use AIgent::Skill::Prompt;
+use AIgent::Skill::Builder;
+use AIgent::Skill::Errors;
 use JSON::Fast;
 
 # ---------------------------------------------------------------------------
@@ -81,6 +86,87 @@ multi MAIN(Bool :$about!) {
     say "└─ license:    {%meta<license>}";
 }
 
+multi MAIN('build', Str $purpose, Str :$name, Str :$dir = '.', Str :$license,
+           Str :$compatibility, Str :$allowed-tools, Bool :$no-llm) {
+    my $llm-client;
+    unless $no-llm {
+        with %*ENV<ANTHROPIC_API_KEY> {
+            try {
+                $llm-client = AIgent::Skill::Builder::LLMClient.new(:api-key($_));
+                CATCH { default { } }
+            }
+        }
+    }
+
+    # Assess clarity
+    my %clarity = assess-clarity($purpose, :llm($llm-client));
+    unless %clarity<clear> {
+        for %clarity<questions>.list -> $q {
+            $*ERR.say($q);
+        }
+        exit 1;
+    }
+
+    # Build
+    my $spec = SkillSpec.new(
+        :$purpose,
+        |(:$name       if $name.defined),
+        |(:$license    if $license.defined),
+        |(:$compatibility if $compatibility.defined),
+        |(:$allowed-tools if $allowed-tools.defined),
+    );
+    my $result = build-skill($spec, $dir.IO, :llm($llm-client));
+    say $result.output-dir;
+    for $result.warnings -> $w {
+        $*ERR.say("Warning: $w");
+    }
+    CATCH {
+        when X::AIgent::Skill::Build {
+            $*ERR.say("aigent build: {.message}");
+            exit 1;
+        }
+        when X::AIgent::Skill::Validation {
+            $*ERR.say("aigent build: {.message}");
+            exit 1;
+        }
+        default {
+            $*ERR.say("aigent build: {.message}");
+            exit 1;
+        }
+    }
+}
+
+multi MAIN('init', Str $dir = '.') {
+    my $target = $dir.IO;
+    my $skill-md = $target.add('SKILL.md');
+
+    if $skill-md.e {
+        $*ERR.say("aigent init: SKILL.md already exists in {$target}");
+        exit 1;
+    }
+
+    $target.mkdir unless $target.e;
+
+    my $template = q:to/TEMPLATE/;
+    ---
+    name: my-skill
+    description: Describe what this skill does. Use when [trigger conditions].
+    ---
+    # My Skill
+
+    Describe the skill's behavior and instructions here.
+    TEMPLATE
+
+    $skill-md.spurt($template);
+    say $skill-md;
+    CATCH {
+        default {
+            $*ERR.say("aigent init: {.message}");
+            exit 1;
+        }
+    }
+}
+
 # ---------------------------------------------------------------------------
 # USAGE — called by Raku on --help (stdout, exit 0) and no-args (stdout, exit 2)
 # ---------------------------------------------------------------------------
@@ -91,8 +177,11 @@ sub USAGE() {
     say "  validate <dir>         Validate a skill directory";
     say "  read-properties <dir>  Read skill properties as JSON";
     say "  to-prompt <dir>...     Generate XML prompt from skill directories";
+    say "  build <purpose>        Build a new skill from natural language";
+    say "  init [dir]             Scaffold a new skill directory";
     say "";
     say "Options:";
     say "  --about                Show project information";
+    say "  --no-llm               Force deterministic mode (build only)";
     say "  --help                 Show this help message";
 }

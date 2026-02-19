@@ -17,7 +17,8 @@
   },
   "depends": [
     "YAMLish",
-    "JSON::Fast"
+    "JSON::Fast",
+    "HTTP::UserAgent"
   ],
   "test-depends": [
     "Test::Async"

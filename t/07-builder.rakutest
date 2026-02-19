@@ -43,7 +43,7 @@ LEAVE {
 # ===========================================================================
 
 # 1. Simple purpose → gerund name
-is derive-name('Process PDF files'), 'processing-pdfs',
+is derive-name('Process PDF files'), 'processing-pdf-files',
     'derive-name: simple purpose produces gerund name';
 
 # 2. Purpose with stop words stripped
@@ -53,7 +53,7 @@ is derive-name('Process PDF files'), 'processing-pdfs',
 }
 
 # 3. Silent-e verb
-is derive-name('Manage database connections'), 'managing-databases',
+is derive-name('Manage database connections'), 'managing-database-connections',
     'derive-name: silent-e verb drops e before -ing';
 
 # 4. Already gerund

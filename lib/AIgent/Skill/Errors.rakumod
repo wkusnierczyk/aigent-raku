@@ -4,6 +4,8 @@ class X::AIgent::Skill is Exception is export {
 
 class X::AIgent::Skill::Parse is X::AIgent::Skill is export {}
 
+class X::AIgent::Skill::Build is X::AIgent::Skill is export {}
+
 class X::AIgent::Skill::Validation is X::AIgent::Skill is export {
     has Str @.errors;
 

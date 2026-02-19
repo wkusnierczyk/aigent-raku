@@ -1,0 +1,243 @@
+use v6.d;
+use Test;
+use JSON::Fast;
+use AIgent::Skill::Builder;
+use AIgent::Skill::Errors;
+use AIgent::Skill::Validator;
+
+plan 23;
+
+# ---------------------------------------------------------------------------
+# Helper: run the CLI as a subprocess
+# ---------------------------------------------------------------------------
+sub run-cli(*@args --> List) {
+    my $proc = run 'raku', '-Ilib', 'bin/aigent', |@args,
+                   :out, :err;
+    my $stdout = $proc.out.slurp(:close);
+    my $stderr = $proc.err.slurp(:close);
+    my $exit   = $proc.exitcode;
+    ($exit, $stdout, $stderr);
+}
+
+# Temp root for cleanup
+my $test-root = $*TMPDIR.add("aigent-test-{$*PID}-builder");
+$test-root.mkdir unless $test-root.e;
+LEAVE {
+    if $test-root.e {
+        for $test-root.dir -> $entry {
+            if $entry.d {
+                for $entry.dir -> $child {
+                    $child.d ?? (try $child.dir».unlink; $child.rmdir) !! $child.unlink;
+                }
+                try $entry.rmdir;
+            } else {
+                $entry.unlink;
+            }
+        }
+        try $test-root.rmdir;
+    }
+}
+
+# ===========================================================================
+# derive-name (5 assertions)
+# ===========================================================================
+
+# 1. Simple purpose → gerund name
+is derive-name('Process PDF files'), 'processing-pdfs',
+    'derive-name: simple purpose produces gerund name';
+
+# 2. Purpose with stop words stripped
+{
+    my $name = derive-name('Extract text from documents');
+    ok $name.starts-with('extracting'), 'derive-name: stop words stripped, gerund produced';
+}
+
+# 3. Silent-e verb
+is derive-name('Manage database connections'), 'managing-databases',
+    'derive-name: silent-e verb drops e before -ing';
+
+# 4. Already gerund
+{
+    my $name = derive-name('Running tests automatically');
+    ok $name.starts-with('running'), 'derive-name: already gerund is preserved';
+}
+
+# 5. Truncation: very long purpose → name ≤ 64 chars
+{
+    my $long = ('generate ' ~ 'very-long-word-' x 20 ~ 'documents');
+    my $name = derive-name($long);
+    ok $name.chars <= 64, "derive-name: long purpose truncated to ≤64 chars ({$name.chars})";
+}
+
+# ===========================================================================
+# generate-description (3 assertions)
+# ===========================================================================
+
+# 6. Produces third-person description starting with a verb
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files and extract text'));
+    my $desc = generate-description($spec);
+    ok $desc ~~ /^ <[A..Z]>/, 'generate-description: starts with capital letter (third person verb)';
+}
+
+# 7. Includes "Use when" clause
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files'));
+    my $desc = generate-description($spec);
+    ok $desc.contains('Use when') || $desc.contains('use when'),
+        'generate-description: includes "Use when" clause';
+}
+
+# 8. Does not exceed 1024 chars
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files and extract text from documents and generate reports and analyze data'));
+    my $desc = generate-description($spec);
+    ok $desc.chars <= 1024, "generate-description: within 1024 chars ({$desc.chars})";
+}
+
+# ===========================================================================
+# generate-body (2 assertions)
+# ===========================================================================
+
+# 9. Contains expected markdown sections
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files'));
+    my $body = generate-body($spec);
+    ok $body.contains('## When to Use') && $body.contains('## Instructions'),
+        'generate-body: contains expected markdown sections';
+}
+
+# 10. Contains purpose-derived content
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files'));
+    my $body = generate-body($spec);
+    ok $body.contains('PDF') || $body.contains('pdf'),
+        'generate-body: contains purpose-derived content';
+}
+
+# ===========================================================================
+# check-body-warnings (2 assertions)
+# ===========================================================================
+
+# 11. Short body → empty warnings list
+{
+    my @warnings = check-body-warnings("# Short\n\nJust a few lines.\n");
+    is @warnings.elems, 0, 'check-body-warnings: short body has no warnings';
+}
+
+# 12. Body with >500 lines → warning list contains length message
+{
+    my $long-body = (1..501).map({ "Line $_" }).join("\n");
+    my @warnings = check-body-warnings($long-body);
+    ok @warnings.elems > 0 && @warnings[0].contains('500'),
+        'check-body-warnings: >500 lines triggers warning';
+}
+
+# ===========================================================================
+# assess-clarity (3 assertions)
+# ===========================================================================
+
+# 13. Clear purpose
+{
+    my %result = assess-clarity('Process PDF files and extract text');
+    ok %result<clear> === True && %result<questions>.elems == 0,
+        'assess-clarity: clear purpose returns clear=True, no questions';
+}
+
+# 14. Too-short purpose
+{
+    my %result = assess-clarity('x');
+    ok %result<clear> === False && %result<questions>.elems > 0,
+        'assess-clarity: too-short purpose returns clear=False with questions';
+}
+
+# 15. Ambiguous purpose
+{
+    my %result = assess-clarity('handle stuff');
+    ok %result<clear> === False && %result<questions>.elems > 0,
+        'assess-clarity: ambiguous purpose returns clear=False with questions';
+}
+
+# ===========================================================================
+# build-skill (4 assertions)
+# ===========================================================================
+
+# 16. Full build produces valid directory with SKILL.md
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files'));
+    my $out = $test-root.add('build-test-1');
+    $out.mkdir;
+    my $result = build-skill($spec, $out);
+    ok $result.output-dir.add('SKILL.md').e,
+        'build-skill: produces directory with SKILL.md';
+}
+
+# 17. Generated SKILL.md passes validate()
+{
+    my $spec = SkillSpec.new(:purpose('Analyze spreadsheet data'));
+    my $out = $test-root.add('build-test-2');
+    $out.mkdir;
+    my $result = build-skill($spec, $out);
+    my @errors = validate($result.output-dir);
+    is @errors.elems, 0, 'build-skill: generated skill passes validation';
+}
+
+# 18. BuildResult contains correct properties
+{
+    my $spec = SkillSpec.new(:purpose('Convert images to thumbnails'));
+    my $out = $test-root.add('build-test-3');
+    $out.mkdir;
+    my $result = build-skill($spec, $out);
+    ok $result.properties.name.chars > 0 && $result.properties.description.chars > 0,
+        'build-skill: BuildResult has non-empty name and description';
+}
+
+# 19. Build into existing directory → throws X::AIgent::Skill::Build
+{
+    my $spec = SkillSpec.new(:purpose('Process PDF files'));
+    my $out = $test-root.add('build-test-4');
+    $out.mkdir;
+    build-skill($spec, $out);  # first build
+    throws-like { build-skill($spec, $out) }, X::AIgent::Skill::Build,
+        'build-skill: existing directory throws X::AIgent::Skill::Build';
+}
+
+# ===========================================================================
+# CLI: build (3 assertions)
+# ===========================================================================
+
+# 20. build with clear purpose → exit 0, stdout contains output path
+{
+    my $out = $test-root.add('cli-build-1');
+    $out.mkdir;
+    my ($exit, $stdout, $stderr) = run-cli('build', 'Process PDF files', '--dir', $out.Str, '--no-llm');
+    ok $exit == 0 && $stdout.trim.chars > 0,
+        'CLI build: clear purpose exits 0 with output path';
+}
+
+# 21. build with unclear purpose → exit 1, stderr contains question
+{
+    my ($exit, $stdout, $stderr) = run-cli('build', 'x', '--no-llm');
+    ok $exit != 0 && $stderr.chars > 0,
+        'CLI build: unclear purpose exits non-zero with stderr';
+}
+
+# 22. build with --no-llm → exit 0 (deterministic forced)
+{
+    my $out = $test-root.add('cli-build-2');
+    $out.mkdir;
+    my ($exit, $stdout, $stderr) = run-cli('build', 'Analyze spreadsheet data', '--dir', $out.Str, '--no-llm');
+    is $exit, 0, 'CLI build: --no-llm forces deterministic mode, exits 0';
+}
+
+# ===========================================================================
+# CLI: init (1 assertion)
+# ===========================================================================
+
+# 23. init creates SKILL.md template
+{
+    my $out = $test-root.add('cli-init-1');
+    my ($exit, $stdout, $stderr) = run-cli('init', $out.Str);
+    ok $exit == 0 && $out.add('SKILL.md').e,
+        'CLI init: creates directory with SKILL.md template';
+}

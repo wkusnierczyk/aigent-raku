@@ -15,19 +15,27 @@ jobs:
       actions: write
 
     steps:
-      - name: Rerun failed jobs (attempt 1)
+      - name: Rerun failed jobs with backoff
         uses: actions/github-script@v7
         with:
           script: |
             const run_id = context.payload.workflow_run.id;
-            const run_number = context.payload.workflow_run.run_attempt;
+            const attempt = context.payload.workflow_run.run_attempt;
+            const maxAttempts = 6;
 
-            if (run_number >= 3) {
-              console.log(`Run ${run_id} already at attempt ${run_number}, not retrying.`);
+            if (attempt >= maxAttempts) {
+              core.warning(`Run ${run_id} at attempt ${attempt} — giving up after ${maxAttempts} attempts.`);
               return;
             }
 
-            console.log(`Rerunning failed jobs for run ${run_id} (attempt ${run_number + 1})...`);
+            // Exponential backoff: 1m, 2m, 4m, 8m, 16m (total ~31m of spread)
+            const delaySec = Math.pow(2, attempt - 1) * 60;
+            const delayMin = delaySec / 60;
+            console.log(`Run ${run_id} failed on attempt ${attempt}. Waiting ${delayMin}m before retry...`);
+
+            await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+
+            console.log(`Rerunning failed jobs for run ${run_id} (attempt ${attempt + 1} of ${maxAttempts})...`);
             await github.rest.actions.reRunWorkflowFailedJobs({
               owner: context.repo.owner,
               repo: context.repo.repo,

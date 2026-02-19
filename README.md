@@ -55,7 +55,7 @@ The validator implements all rules from both the [Anthropic agent skill best pra
 
 ## Status
 
-**M8 (Main Module & Documentation) complete.** M9 (Claude Code Plugin) in progress.
+**All milestones complete.** The library, CLI, builder, and Claude Code plugin are ready for use.
 
 See the [development plan](dev/plan.md) for full details.
 
@@ -67,7 +67,7 @@ See the [development plan](dev/plan.md) for full details.
 curl -fsSL https://github.com/wkusnierczyk/aigent-skills/releases/latest/download/install.sh | bash
 ```
 
-This downloads a self-contained bundle (~20 MB) for your platform and installs it to `~/.aigent`. No Raku, zef, or other dependencies required.
+This downloads a self-contained bundle (~20 MB) for your platform and installs it to `~/.aigent`. No Raku, zef, or other dependencies required. Set `AIGENT_HOME` to override the install location.
 
 Supported platforms: Linux x86_64, macOS arm64 (Apple Silicon), macOS x86_64 (Intel).
 
@@ -87,8 +87,10 @@ Requires [Rakudo](https://rakudo.org/) (latest release) and [zef](https://github
 ```bash
 git clone git@github.com:wkusnierczyk/aigent-skills.git
 cd aigent-skills
-zef install .
+zef install . --/test
 ```
+
+> **Note:** `--/test` skips dependency test suites during installation.  `Test::Async` (a test dependency) has intermittently flaky self-tests; the module itself works correctly. To run the project's own tests, use `just test` after installation.
 
 ## Usage
 
@@ -328,6 +330,7 @@ Use this skill when:
 | `check-body-warnings(Str $body)` | Builder | Check body for style issues |
 | `assess-clarity(Str $purpose)` | Builder | Assess if purpose is clear enough |
 | `build-skill(SkillSpec $spec, IO::Path $dir)` | Builder | Full build pipeline |
+| `meta-info()` | AIgent::Skill | Distribution metadata as a Hash |
 
 All builder functions accept optional `:@warnings` named parameters. All except `check-body-warnings` also accept `:$llm` (LLMClient).
 
@@ -372,7 +375,7 @@ just setup
 
 ```bash
 just setup              # install deps + lefthook + hooks
-just install            # install module locally (zef install .)
+just install            # install module locally (zef install . --/test)
 just test               # run test suite
 just lint               # run lint-syntax + lint-meta
 just format             # whitespace scan (tabs, trailing spaces)
@@ -382,7 +385,7 @@ just check              # format + lint + test
 
 ### Versioning
 
-Version is stored exclusively in `META6.json` — the single source of truth.
+Version is stored in `META6.json` (single source of truth). The `version-set` recipe also syncs `.claude-plugin/plugin.json`.
 
 ```bash
 just version            # print current version

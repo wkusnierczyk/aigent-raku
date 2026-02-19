@@ -46,15 +46,19 @@ class LLMClient {
             ],
         );
 
+        # HTTP::UserAgent.post expects %form for form data; for raw JSON
+        # we must build an HTTP::Request and use $ua.request().
+        my $url = 'https://api.anthropic.com/v1/messages';
+        my $json-body = to-json(%body);
+
         my $response;
         try {
-            $response = $ua.post(
-                'https://api.anthropic.com/v1/messages',
-                'Content-Type'      => 'application/json',
-                'x-api-key'         => $!api-key,
-                'anthropic-version'  => '2023-06-01',
-                to-json(%body),
-            );
+            my $req = HTTP::Request.new(:POST($url));
+            $req.header.field(:Content-Type<application/json>);
+            $req.header.field(:x-api-key($!api-key));
+            $req.header.field(:anthropic-version<2023-06-01>);
+            $req.content = $json-body;
+            $response = $ua.request($req);
             CATCH {
                 default {
                     X::AIgent::Skill::Build.new(
@@ -84,6 +88,15 @@ my constant @STOP-WORDS = <a an the and or for from to with in of that this
                            is are be can will should do does did has have>;
 
 my constant @AMBIGUOUS-TERMS = <stuff things handle it something do make>;
+
+# Common action verbs for clarity detection (imperative form)
+my constant @ACTION-VERBS = <process extract analyze convert manage generate
+                             create build deploy monitor validate parse
+                             transform filter aggregate compile format
+                             search find read write update delete remove
+                             run execute test check verify send receive
+                             upload download import export sync merge
+                             scan detect classify sort index render>;
 
 # Never double these consonants
 my constant @NO-DOUBLE = <w x y>;
@@ -131,7 +144,7 @@ sub to-gerund(Str $verb --> Str) {
 # Exported functions
 # ---------------------------------------------------------------------------
 
-sub derive-name(Str $purpose, :$llm --> Str) is export {
+sub derive-name(Str $purpose, :$llm, :@warnings --> Str) is export {
     # LLM mode
     if $llm.defined {
         try {
@@ -148,7 +161,9 @@ sub derive-name(Str $purpose, :$llm --> Str) is export {
                 return $name;
             }
             CATCH {
-                when X::AIgent::Skill::Build { }  # fall through to deterministic
+                when X::AIgent::Skill::Build {
+                    @warnings.push("LLM name generation failed, using deterministic: {.message}");
+                }
             }
         }
     }
@@ -173,7 +188,7 @@ sub derive-name(Str $purpose, :$llm --> Str) is export {
     $name;
 }
 
-sub generate-description(SkillSpec $spec, :$llm --> Str) is export {
+sub generate-description(SkillSpec $spec, :$llm, :@warnings --> Str) is export {
     # LLM mode
     if $llm.defined {
         try {
@@ -183,7 +198,9 @@ sub generate-description(SkillSpec $spec, :$llm --> Str) is export {
             );
             return $result.substr(0, 1024) if $result.chars > 0;
             CATCH {
-                when X::AIgent::Skill::Build { }  # fall through
+                when X::AIgent::Skill::Build {
+                    @warnings.push("LLM description generation failed, using deterministic: {.message}");
+                }
             }
         }
     }
@@ -210,7 +227,7 @@ sub generate-description(SkillSpec $spec, :$llm --> Str) is export {
     $text.substr(0, 1024);
 }
 
-sub generate-body(SkillSpec $spec, :$llm --> Str) is export {
+sub generate-body(SkillSpec $spec, :$llm, Str :$name, :@warnings --> Str) is export {
     # LLM mode
     if $llm.defined {
         try {
@@ -220,14 +237,16 @@ sub generate-body(SkillSpec $spec, :$llm --> Str) is export {
             );
             return $result if $result.chars > 0;
             CATCH {
-                when X::AIgent::Skill::Build { }  # fall through
+                when X::AIgent::Skill::Build {
+                    @warnings.push("LLM body generation failed, using deterministic: {.message}");
+                }
             }
         }
     }
 
     # Deterministic mode — fill template from spec
-    my $name = $spec.name // derive-name($spec.purpose);
-    my $title = $name.split('-').map(*.tc).join(' ');
+    my $effective-name = $name // $spec.name // derive-name($spec.purpose);
+    my $title = $effective-name.split('-').map(*.tc).join(' ');
 
     my @keywords = $spec.purpose.lc.words.grep({ $_ !(elem) @STOP-WORDS });
     my $keyword-str = @keywords.head(3).join(', ');
@@ -262,7 +281,7 @@ sub check-body-warnings(Str $body --> List) is export {
     @warnings;
 }
 
-sub assess-clarity(Str $purpose, :$llm --> Hash) is export {
+sub assess-clarity(Str $purpose, :$llm, :@warnings --> Hash) is export {
     # LLM mode
     if $llm.defined {
         try {
@@ -273,8 +292,12 @@ sub assess-clarity(Str $purpose, :$llm --> Hash) is export {
             my %parsed = from-json($result);
             return %parsed if %parsed<clear>:exists;
             CATCH {
-                when X::AIgent::Skill::Build { }  # fall through
-                default { }  # JSON parse failure, fall through
+                when X::AIgent::Skill::Build {
+                    @warnings.push("LLM clarity assessment failed, using deterministic: {.message}");
+                }
+                default {
+                    @warnings.push("LLM clarity assessment failed, using deterministic: {.message}");
+                }
             }
         }
     }
@@ -302,22 +325,28 @@ sub assess-clarity(Str $purpose, :$llm --> Hash) is export {
         return %( clear => False, questions => @questions );
     }
 
+    # No action verb detected — first word should be imperative or gerund verb
+    my $first = @words[0];
+    my $has-verb = $first (elem) @ACTION-VERBS
+                || $first.ends-with('ing')
+                || $first.ends-with('e') && ($first.substr(0, *-1) ~ 'ing') (elem) @ACTION-VERBS.map(*.Str).List;
+    unless $has-verb {
+        @questions.push('No action verb detected. What should this skill do with the input?');
+        return %( clear => False, questions => @questions );
+    }
+
     %( clear => True, questions => @questions );
 }
 
 sub build-skill(SkillSpec $spec, IO::Path $output-dir, :$llm --> BuildResult) is export {
     my @warnings;
 
-    # Determine name
-    my $name = $spec.name // derive-name($spec.purpose, :$llm);
-
-    # Check for LLM fallback warnings
-    my $effective-llm = $llm;
-    # (Individual function calls handle their own fallback internally)
+    # Determine name — sub-functions collect LLM fallback warnings
+    my $name = $spec.name // derive-name($spec.purpose, :$llm, :@warnings);
 
     # Generate content
-    my $description = generate-description($spec, :$llm);
-    my $body        = generate-body($spec, :$llm);
+    my $description = generate-description($spec, :$llm, :@warnings);
+    my $body        = generate-body($spec, :$llm, :$name, :@warnings);
 
     # Create skill directory
     my $skill-dir = $output-dir.add($name);
@@ -338,14 +367,14 @@ sub build-skill(SkillSpec $spec, IO::Path $output-dir, :$llm --> BuildResult) is
     %frontmatter<allowed-tools> = $_ with $spec.allowed-tools;
 
     # Build YAML manually — save-yaml quotes keys which YAMLish can't re-parse
+    # All scalar values are single-quoted to prevent YAML injection (: # [ etc.)
+    sub yaml-quote(Str $v --> Str) { "'" ~ $v.subst("'", "''", :g) ~ "'" }
     my @yaml-lines;
-    @yaml-lines.push("name: {$name}");
-    # Use single-quoted YAML for description to handle special characters
-    my $esc-desc = $description.subst("'", "''", :g);
-    @yaml-lines.push("description: '{$esc-desc}'");
-    @yaml-lines.push("license: {$_}") with %frontmatter<license>;
-    @yaml-lines.push("compatibility: {$_}") with %frontmatter<compatibility>;
-    @yaml-lines.push("allowed-tools: {$_}") with %frontmatter<allowed-tools>;
+    @yaml-lines.push("name: {yaml-quote($name)}");
+    @yaml-lines.push("description: {yaml-quote($description)}");
+    @yaml-lines.push("license: {yaml-quote($_)}") with %frontmatter<license>;
+    @yaml-lines.push("compatibility: {yaml-quote($_)}") with %frontmatter<compatibility>;
+    @yaml-lines.push("allowed-tools: {yaml-quote($_)}") with %frontmatter<allowed-tools>;
     my $content = "---\n" ~ @yaml-lines.join("\n") ~ "\n---\n{$body}\n";
 
     # Write SKILL.md

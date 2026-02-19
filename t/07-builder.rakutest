@@ -5,7 +5,7 @@ use AIgent::Skill::Builder;
 use AIgent::Skill::Errors;
 use AIgent::Skill::Validator;
 
-plan 23;
+plan 24;
 
 # ---------------------------------------------------------------------------
 # Helper: run the CLI as a subprocess
@@ -156,6 +156,13 @@ is derive-name('Manage database connections'), 'managing-database-connections',
     my %result = assess-clarity('handle stuff');
     ok %result<clear> === False && %result<questions>.elems > 0,
         'assess-clarity: ambiguous purpose returns clear=False with questions';
+}
+
+# 15b. Noun-only purpose (no action verb)
+{
+    my %result = assess-clarity('PDF documents and spreadsheets');
+    ok %result<clear> === False && %result<questions>.elems > 0,
+        'assess-clarity: noun-only purpose returns clear=False with questions';
 }
 
 # ===========================================================================

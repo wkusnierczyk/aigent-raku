@@ -48,7 +48,7 @@ jobs:
           just-version: ${{ env.JUST_VERSION }}
 
       - name: Install dependencies
-        run: zef install --deps-only . --/test
+        run: zef install --deps-only . --/test || zef install --deps-only . --/test
 
       - name: Install prove6 (Unix)
         if: runner.os != 'Windows'

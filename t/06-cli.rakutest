@@ -1,0 +1,185 @@
+use v6.d;
+use Test;
+use JSON::Fast;
+
+plan 16;
+
+# ---------------------------------------------------------------------------
+# Helper: run the CLI as a subprocess
+# ---------------------------------------------------------------------------
+sub run-cli(*@args --> List) {
+    my $proc = run 'raku', '-Ilib', 'bin/aigent', |@args,
+                   :out, :err;
+    my $stdout = $proc.out.slurp(:close);
+    my $stderr = $proc.err.slurp(:close);
+    my $exit   = $proc.exitcode;
+    ($exit, $stdout, $stderr);
+}
+
+# ---------------------------------------------------------------------------
+# Helper: create a skill directory with a SKILL.md
+# ---------------------------------------------------------------------------
+sub make-skill-dir(Str $name, Str $description, Str :$license --> IO::Path) {
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-cli");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add($name);
+    $dir.mkdir unless $dir.e;
+
+    my $yaml = "---\nname: $name\ndescription: '$description'";
+    $yaml ~= "\nlicense: $license" if $license.defined;
+    $yaml ~= "\n---\nBody text.\n";
+
+    $dir.add('SKILL.md').spurt($yaml);
+    $dir;
+}
+
+# Temp root for cleanup
+my $test-root = $*TMPDIR.add("aigent-test-{$*PID}-cli");
+LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $test-root.e; try $test-root.rmdir; }
+
+# ===========================================================================
+# validate (4 assertions)
+# ===========================================================================
+
+# 1. Valid skill dir → exit 0, empty stderr
+{
+    my $dir = make-skill-dir('valid-cli', 'A valid skill');
+    my ($exit, $stdout, $stderr) = run-cli('validate', $dir.Str);
+    is $exit, 0, 'validate: valid skill exits 0';
+}
+
+# 2. Invalid skill (uppercase name) → exit 1, stderr contains error
+{
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-cli");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add('upper-case');
+    $dir.mkdir unless $dir.e;
+    $dir.add('SKILL.md').spurt("---\nname: Upper-Case\ndescription: bad\n---\n");
+
+    my ($exit, $stdout, $stderr) = run-cli('validate', $dir.Str);
+    ok $exit != 0 && $stderr.contains('lowercase'), 'validate: uppercase name exits non-zero with error';
+}
+
+# 3. Nonexistent dir → exit 1, stderr mentions path
+{
+    my $bad = $*TMPDIR.add("aigent-test-{$*PID}-cli-nonexistent");
+    my ($exit, $stdout, $stderr) = run-cli('validate', $bad.Str);
+    ok $exit != 0 && $stderr.contains($bad.basename), 'validate: nonexistent dir exits non-zero';
+}
+
+# 4. SKILL.md file path → resolves to parent, exit 0
+{
+    my $dir = make-skill-dir('resolve-test', 'A test skill');
+    my $file = $dir.add('SKILL.md');
+    my ($exit, $stdout, $stderr) = run-cli('validate', $file.Str);
+    is $exit, 0, 'validate: SKILL.md path resolves to parent dir';
+}
+
+# ===========================================================================
+# read-properties (4 assertions)
+# ===========================================================================
+
+# 5. Valid skill → exit 0, stdout is valid JSON with correct name
+{
+    my $dir = make-skill-dir('json-test', 'A JSON test');
+    my ($exit, $stdout, $stderr) = run-cli('read-properties', $dir.Str);
+    is $exit, 0, 'read-properties: valid skill exits 0';
+}
+
+# 6. Valid skill with optional fields → JSON includes license
+{
+    my $dir = make-skill-dir('licensed', 'A licensed skill', :license<MIT>);
+    my ($exit, $stdout, $stderr) = run-cli('read-properties', $dir.Str);
+    my %json = from-json($stdout);
+    ok %json<license> eq 'MIT', 'read-properties: JSON includes license field';
+}
+
+# 7. Invalid dir → exit 1, non-empty stderr
+{
+    my $bad = $*TMPDIR.add("aigent-test-{$*PID}-cli-nonexistent");
+    my ($exit, $stdout, $stderr) = run-cli('read-properties', $bad.Str);
+    ok $exit != 0 && $stderr.chars > 0, 'read-properties: invalid dir exits non-zero with stderr';
+}
+
+# 8. JSON output matches expected structure (parse and check keys)
+{
+    my $dir = make-skill-dir('struct-test', 'Structure test');
+    my ($exit, $stdout, $stderr) = run-cli('read-properties', $dir.Str);
+    my %json = from-json($stdout);
+    ok %json<name> eq 'struct-test' && %json<description> eq 'Structure test',
+        'read-properties: JSON has correct name and description';
+}
+
+# ===========================================================================
+# to-prompt (4 assertions)
+# ===========================================================================
+
+# 9. Single dir → exit 0, stdout contains <available_skills> and <skill>
+{
+    my $dir = make-skill-dir('prompt-one', 'First prompt skill');
+    my ($exit, $stdout, $stderr) = run-cli('to-prompt', $dir.Str);
+    ok $exit == 0 && $stdout.contains('<available_skills>') && $stdout.contains('<skill>'),
+        'to-prompt: single dir exits 0 with XML';
+}
+
+# 10. Multiple dirs → exit 0, stdout contains both skill names
+{
+    my $dir-a = make-skill-dir('prompt-alpha', 'Alpha');
+    my $dir-b = make-skill-dir('prompt-beta', 'Beta');
+    my ($exit, $stdout, $stderr) = run-cli('to-prompt', $dir-a.Str, $dir-b.Str);
+    ok $exit == 0 && $stdout.contains('prompt-alpha') && $stdout.contains('prompt-beta'),
+        'to-prompt: multiple dirs produces both skill names';
+}
+
+# 11. Invalid dir → exit 1, non-empty stderr
+{
+    my $bad = $*TMPDIR.add("aigent-test-{$*PID}-cli-nonexistent");
+    my ($exit, $stdout, $stderr) = run-cli('to-prompt', $bad.Str);
+    ok $exit != 0 && $stderr.chars > 0, 'to-prompt: invalid dir exits non-zero with stderr';
+}
+
+# 12. SKILL.md file path → resolves to parent, exit 0, correct XML
+{
+    my $dir = make-skill-dir('prompt-resolve', 'Resolve test');
+    my $file = $dir.add('SKILL.md');
+    my ($exit, $stdout, $stderr) = run-cli('to-prompt', $file.Str);
+    ok $exit == 0 && $stdout.contains('<name>prompt-resolve</name>'),
+        'to-prompt: SKILL.md path resolves to parent dir';
+}
+
+# ===========================================================================
+# --about (2 assertions)
+# ===========================================================================
+
+# 13. --about → exit 0, stdout contains "AIgent::Skill"
+{
+    my ($exit, $stdout, $stderr) = run-cli('--about');
+    ok $exit == 0 && $stdout.contains('AIgent::Skill'),
+        '--about: exits 0 and contains project name';
+}
+
+# 14. --about → stdout contains version from META6.json
+{
+    my ($exit, $stdout, $stderr) = run-cli('--about');
+    my %meta = from-json('META6.json'.IO.slurp);
+    ok $stdout.contains(%meta<version>),
+        '--about: stdout contains version from META6.json';
+}
+
+# ===========================================================================
+# USAGE (2 assertions)
+# ===========================================================================
+
+# 15. No args → exit non-zero, stderr contains "Usage"
+{
+    my ($exit, $stdout, $stderr) = run-cli();
+    ok $exit != 0 && ($stderr.contains('Usage') || $stdout.contains('Usage')),
+        'no args: exits non-zero with usage info';
+}
+
+# 16. --help → exit 0, stdout contains "validate"
+{
+    my ($exit, $stdout, $stderr) = run-cli('--help');
+    ok $exit == 0 && $stdout.contains('validate'),
+        '--help: exits 0 with usage containing "validate"';
+}

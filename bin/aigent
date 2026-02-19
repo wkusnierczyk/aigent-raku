@@ -2,12 +2,75 @@
 
 use lib 'lib';
 
-proto MAIN(|) is export {*}
+use AIgent::Skill::Validator;
+use AIgent::Skill::Parser;
+use AIgent::Skill::Prompt;
+use JSON::Fast;
 
-multi MAIN('--help') {
-    USAGE();
+# ---------------------------------------------------------------------------
+# Path resolution: if path points to SKILL.md or skill.md, resolve to parent
+# ---------------------------------------------------------------------------
+sub resolve-skill-dir(Str $path --> IO::Path) {
+    my $io = $path.IO;
+    if $io.f && $io.basename eq 'SKILL.md' | 'skill.md' {
+        return $io.parent;
+    }
+    $io;
 }
 
+# ---------------------------------------------------------------------------
+# Subcommands
+# ---------------------------------------------------------------------------
+
+proto MAIN(|) is export {*}
+
+multi MAIN('validate', $skill-dir) {
+    my $dir = resolve-skill-dir($skill-dir);
+    my @errors = validate($dir);
+    if @errors {
+        for @errors -> $e {
+            $*ERR.say($e);
+        }
+        exit 1;
+    }
+}
+
+multi MAIN('read-properties', $skill-dir) {
+    my $dir = resolve-skill-dir($skill-dir);
+    my $props = read-properties($dir);
+    say to-json($props.to-hash, :sorted-keys);
+    CATCH {
+        default {
+            $*ERR.say("aigent read-properties: {.message}");
+            exit 1;
+        }
+    }
+}
+
+multi MAIN('to-prompt', *@skill-dirs where *.elems > 0) {
+    my IO::Path @dirs = @skill-dirs.map({ resolve-skill-dir($_) });
+    say to-prompt(@dirs);
+    CATCH {
+        default {
+            $*ERR.say("aigent to-prompt: {.message}");
+            exit 1;
+        }
+    }
+}
+
+multi MAIN(Bool :$about!) {
+    my $meta-path = $*PROGRAM.parent(2).add('META6.json');
+    my %meta = from-json($meta-path.slurp);
+    say "{%meta<name>}: {%meta<description>}";
+    say "├─ version:    {%meta<version>}";
+    say "├─ developer:  {%meta<auth>}";
+    say "├─ source:     {%meta<source-url>}";
+    say "└─ license:    {%meta<license>}";
+}
+
+# ---------------------------------------------------------------------------
+# USAGE — displayed by Raku on --help (exit 0) and no-args (exit non-zero)
+# ---------------------------------------------------------------------------
 sub USAGE() {
     say "Usage: aigent <command> [options]";
     say "";
@@ -15,6 +78,8 @@ sub USAGE() {
     say "  validate <dir>         Validate a skill directory";
     say "  read-properties <dir>  Read skill properties as JSON";
     say "  to-prompt <dir>...     Generate XML prompt from skill directories";
-    say "  build <purpose>        Build a new skill from natural language";
-    say "  init [dir]             Scaffold a new skill directory";
+    say "";
+    say "Options:";
+    say "  --about                Show project information";
+    say "  --help                 Show this help message";
 }

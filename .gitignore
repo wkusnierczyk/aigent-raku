@@ -6,6 +6,10 @@ lib/.precomp/
 # Builder test artifacts
 extracting-data/
 
+# Bundle artifacts
+.cache/
+dist/
+
 # Editor
 *~
 *.swp

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# install.sh — Install aigent (AIgent::Skill) on macOS or Linux
+# install.sh — Install aigent (AIgent::Skill)
 #
 # Usage:
 #   curl -fsSL https://github.com/wkusnierczyk/aigent-skills/releases/latest/download/install.sh | bash
 #
 # What this does:
-#   1. Checks for Rakudo (Raku compiler) — installs via rakubrew if missing
-#   2. Checks for zef (Raku module manager) — comes with rakubrew
-#   3. Installs AIgent::Skill from the Raku ecosystem
+#   1. Downloads a self-contained aigent bundle for your platform
+#   2. Extracts it to ~/.aigent
+#   3. Adds ~/.aigent/bin to your PATH
 #
-# After installation, `aigent` will be on your PATH.
+# No Raku, zef, or other dependencies required.
 
 set -euo pipefail
 
@@ -24,82 +24,115 @@ warn()  { echo -e "${BOLD}${YELLOW}warning:${RESET} $*"; }
 error() { echo -e "${BOLD}${RED}error:${RESET} $*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Pre-flight checks
+# Detect platform
 # ---------------------------------------------------------------------------
 
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-    error "Windows is not supported by this installer. See README for alternatives."
+detect-platform() {
+    local os arch
+
+    case "$(uname -s)" in
+        Linux)  os="linux" ;;
+        Darwin) os="macos" ;;
+        *)      error "Unsupported OS: $(uname -s). Only Linux and macOS are supported." ;;
+    esac
+
+    case "$(uname -m)" in
+        x86_64|amd64)  arch="x86_64" ;;
+        arm64|aarch64) arch="arm64" ;;
+        *)             error "Unsupported architecture: $(uname -m)" ;;
+    esac
+
+    # No arm64 Linux bundle yet
+    if [[ "$os" == "linux" && "$arch" == "arm64" ]]; then
+        error "Linux arm64 is not yet supported. See README for alternatives."
+    fi
+
+    echo "${os}-${arch}"
+}
+
+PLATFORM="$(detect-platform)"
+INSTALL_DIR="${AIGENT_HOME:-$HOME/.aigent}"
+REPO="wkusnierczyk/aigent-skills"
+
+# ---------------------------------------------------------------------------
+# Fetch latest release version
+# ---------------------------------------------------------------------------
+
+info "Detecting latest release..."
+LATEST_TAG="$(curl -fsSL -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
+
+if [[ -z "${LATEST_TAG}" ]]; then
+    error "Could not determine latest release. Check https://github.com/${REPO}/releases"
 fi
 
+VERSION="${LATEST_TAG#v}"
+TARBALL="aigent-${VERSION}-${PLATFORM}.tar.gz"
+DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${LATEST_TAG}/${TARBALL}"
+
+info "Installing aigent ${VERSION} for ${PLATFORM}"
+
 # ---------------------------------------------------------------------------
-# Step 1: Ensure Rakudo is available
+# Download and extract
 # ---------------------------------------------------------------------------
 
-if command -v raku &>/dev/null; then
-    info "Rakudo found: $(raku --version | head -1)"
-else
-    info "Rakudo not found. Installing via rakubrew..."
+WORK_DIR="$(mktemp -d)"
+cleanup() { rm -rf "${WORK_DIR}"; }
+trap cleanup EXIT
 
-    if command -v rakubrew &>/dev/null; then
-        info "rakubrew found, building latest Rakudo..."
+info "Downloading ${TARBALL}..."
+if ! curl -fSL -o "${WORK_DIR}/${TARBALL}" "${DOWNLOAD_URL}"; then
+    error "Download failed. No bundle available for ${PLATFORM} at ${LATEST_TAG}."
+fi
+
+info "Extracting to ${INSTALL_DIR}..."
+rm -rf "${INSTALL_DIR}"
+mkdir -p "${INSTALL_DIR}"
+tar -xzf "${WORK_DIR}/${TARBALL}" --strip-components=1 -C "${INSTALL_DIR}"
+
+# Verify
+if [[ ! -x "${INSTALL_DIR}/aigent" ]]; then
+    error "Installation failed — aigent wrapper not found."
+fi
+
+"${INSTALL_DIR}/aigent" --about || error "aigent --about failed after installation"
+
+# ---------------------------------------------------------------------------
+# Add to PATH
+# ---------------------------------------------------------------------------
+
+BIN_DIR="${INSTALL_DIR}"
+SHELL_NAME="$(basename "${SHELL:-/bin/bash}")"
+RC_FILE=""
+
+case "$SHELL_NAME" in
+    bash) RC_FILE="$HOME/.bashrc" ;;
+    zsh)  RC_FILE="$HOME/.zshrc" ;;
+    fish) RC_FILE="$HOME/.config/fish/config.fish" ;;
+esac
+
+PATH_LINE="export PATH=\"${BIN_DIR}:\$PATH\""
+if [[ "$SHELL_NAME" == "fish" ]]; then
+    PATH_LINE="set -gx PATH ${BIN_DIR} \$PATH"
+fi
+
+if [[ -n "$RC_FILE" ]]; then
+    if ! grep -qF "${BIN_DIR}" "$RC_FILE" 2>/dev/null; then
+        echo "" >> "$RC_FILE"
+        echo "# aigent" >> "$RC_FILE"
+        echo "$PATH_LINE" >> "$RC_FILE"
+        info "Added ${BIN_DIR} to PATH in ${RC_FILE}"
+        info "Run 'source ${RC_FILE}' or open a new terminal to use aigent."
     else
-        info "Installing rakubrew..."
-        curl -fsSL https://rakubrew.org/install-on-perl.sh | bash
-
-        # Source rakubrew into current session
-        export PATH="$HOME/.rakubrew/bin:$PATH"
-        eval "$(rakubrew init Bash)"
+        info "${BIN_DIR} already in ${RC_FILE}"
     fi
-
-    rakubrew build moar
-    rakubrew switch moar
-
-    if ! command -v raku &>/dev/null; then
-        error "Rakudo installation failed. Please install manually: https://rakudo.org/downloads"
-    fi
-
-    info "Rakudo installed: $(raku --version | head -1)"
-fi
-
-# ---------------------------------------------------------------------------
-# Step 2: Ensure zef is available
-# ---------------------------------------------------------------------------
-
-if command -v zef &>/dev/null; then
-    info "zef found: $(zef --version 2>/dev/null || echo 'unknown version')"
 else
-    info "zef not found. Installing..."
-
-    if command -v rakubrew &>/dev/null; then
-        rakubrew build-zef
-    else
-        # Manual zef install
-        git clone https://github.com/ugexe/zef.git /tmp/zef-install
-        raku -I/tmp/zef-install/lib /tmp/zef-install/bin/zef install .
-        rm -rf /tmp/zef-install
-    fi
-
-    if ! command -v zef &>/dev/null; then
-        error "zef installation failed. Please install manually: https://github.com/ugexe/zef"
-    fi
+    warn "Could not detect shell config file."
+    warn "Add this to your shell profile:"
+    warn "  ${PATH_LINE}"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 3: Install AIgent::Skill
-# ---------------------------------------------------------------------------
-
-info "Installing AIgent::Skill..."
-
-zef install AIgent::Skill
-
-if command -v aigent &>/dev/null; then
-    info "Installation complete!"
-    echo ""
-    aigent --about
-    echo ""
-    info "Run 'aigent --help' to get started."
-else
-    warn "AIgent::Skill installed but 'aigent' not found on PATH."
-    warn "You may need to add zef's bin directory to your PATH."
-    warn "Try: export PATH=\"\$HOME/.rakubrew/bin:\$PATH\""
-fi
+echo ""
+info "Installation complete!"
+info "Run 'aigent --help' to get started."

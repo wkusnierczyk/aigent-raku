@@ -13,7 +13,7 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 
 ## Status
 
-**M3 (Parser) complete.**
+**M5 (Prompt Generation) complete.** M6 (CLI) in planning.
 
 See the [development plan](dev/plan.md) for full details.
 
@@ -105,13 +105,13 @@ All workflows live in `.github/workflows/`.
 
 Runs on every push to `main` and on every pull request. Tests across a 3-OS matrix:
 
-| Platform | Just install | Test runner |
-|----------|-------------|-------------|
-| Ubuntu | `just.systems/install.sh` | `just test` (prove6) |
-| macOS | `just.systems/install.sh` | `just test` (prove6) |
-| Windows | `choco install just` | `zef test .` |
+| Platform | Test runner |
+|----------|-------------|
+| Ubuntu | `just test` (prove6) |
+| macOS | `just test` (prove6) |
+| Windows | `zef test .` |
 
-Steps: checkout → setup Raku → cache deps → install just → install deps → lint → test.
+Steps: checkout → setup Raku → cache deps → setup just (`extractions/setup-just@v3`) → install deps → lint → test.
 
 ### Rerun Failed Jobs (`rerun-failed.yml`)
 

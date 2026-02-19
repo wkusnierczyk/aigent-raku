@@ -12,7 +12,7 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 
 ## Status
 
-**M2 (Core Data Model & Errors) complete.**
+**M3 (Parser) complete.**
 
 See the [development plan](dev/plan.md) for full details.
 

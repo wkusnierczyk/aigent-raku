@@ -45,7 +45,7 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
 {
     my $dir = make-skill-dir('valid-cli', 'A valid skill');
     my ($exit, $stdout, $stderr) = run-cli('validate', $dir.Str);
-    is $exit, 0, 'validate: valid skill exits 0';
+    ok $exit == 0 && $stderr eq '', 'validate: valid skill exits 0 with empty stderr';
 }
 
 # 2. Invalid skill (uppercase name) → exit 1, stderr contains error
@@ -83,7 +83,7 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
 {
     my $dir = make-skill-dir('json-test', 'A JSON test');
     my ($exit, $stdout, $stderr) = run-cli('read-properties', $dir.Str);
-    is $exit, 0, 'read-properties: valid skill exits 0';
+    ok $exit == 0 && $stderr eq '', 'read-properties: valid skill exits 0 with empty stderr';
 }
 
 # 6. Valid skill with optional fields → JSON includes license
@@ -118,8 +118,8 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
 {
     my $dir = make-skill-dir('prompt-one', 'First prompt skill');
     my ($exit, $stdout, $stderr) = run-cli('to-prompt', $dir.Str);
-    ok $exit == 0 && $stdout.contains('<available_skills>') && $stdout.contains('<skill>'),
-        'to-prompt: single dir exits 0 with XML';
+    ok $exit == 0 && $stderr eq '' && $stdout.contains('<available_skills>') && $stdout.contains('<skill>'),
+        'to-prompt: single dir exits 0 with XML and empty stderr';
 }
 
 # 10. Multiple dirs → exit 0, stdout contains both skill names

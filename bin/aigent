@@ -33,6 +33,12 @@ multi MAIN('validate', $skill-dir) {
         }
         exit 1;
     }
+    CATCH {
+        default {
+            $*ERR.say("aigent validate: {.message}");
+            exit 1;
+        }
+    }
 }
 
 multi MAIN('read-properties', $skill-dir) {
@@ -59,8 +65,15 @@ multi MAIN('to-prompt', *@skill-dirs where *.elems > 0) {
 }
 
 multi MAIN(Bool :$about!) {
-    my $meta-path = $*PROGRAM.parent(2).add('META6.json');
-    my %meta = from-json($meta-path.slurp);
+    # Try distribution metadata first (works when installed via zef),
+    # fall back to filesystem (works when running from source checkout)
+    my %meta;
+    if $?DISTRIBUTION.defined && $?DISTRIBUTION.meta {
+        %meta = $?DISTRIBUTION.meta;
+    } else {
+        my $meta-path = $*PROGRAM.parent(2).add('META6.json');
+        %meta = from-json($meta-path.slurp);
+    }
     say "{%meta<name>}: {%meta<description>}";
     say "├─ version:    {%meta<version>}";
     say "├─ developer:  {%meta<auth>}";
@@ -69,7 +82,7 @@ multi MAIN(Bool :$about!) {
 }
 
 # ---------------------------------------------------------------------------
-# USAGE — displayed by Raku on --help (exit 0) and no-args (exit non-zero)
+# USAGE — called by Raku on --help (stdout, exit 0) and no-args (stdout, exit 2)
 # ---------------------------------------------------------------------------
 sub USAGE() {
     say "Usage: aigent <command> [options]";

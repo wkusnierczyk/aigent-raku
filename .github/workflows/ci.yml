@@ -7,6 +7,7 @@ on:
 
 env:
   RAKU_VERSION: 'latest'
+  JUST_VERSION: '1.46.0'
 
 jobs:
   ci:
@@ -41,14 +42,10 @@ jobs:
             raku-${{ runner.os }}-${{ env.RAKU_VERSION }}-
             raku-${{ runner.os }}-
 
-      - name: Install just (Unix)
-        if: runner.os != 'Windows'
-        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-      - name: Install just (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: choco install just -y
+      - name: Setup just
+        uses: extractions/setup-just@v3
+        with:
+          just-version: ${{ env.JUST_VERSION }}
 
       - name: Install dependencies
         run: zef install --deps-only . --/test

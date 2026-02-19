@@ -42,10 +42,10 @@ Compact plan for a focused module. Tests-first ordering is good. XML format is c
    - `read-properties` doesn't expose the resolved file path; `to-prompt` would need to call `find-skill-md` separately or the plan should define a canonical form.
    - Overlaps with PR1 finding 1; confirming the issue from a different angle.
 
-2. Low: verification assumes 31 validator tests, current suite has 30.
+2. Low (resolved): verification count lagged the validator tests at the time of this review.
    - Plan line 124 says `04-validator: 31`.
-   - `t/04-validator.rakutest` has `plan 30`.
-   - Likely anticipates the unreadable-directory test from M4 CR2; should note dependency or correct the count.
+   - At the time of this review, `t/04-validator.rakutest` had `plan 30`; it has since been updated to `plan 31`.
+   - The unreadable-directory test from M4 CR2 has been added, fulfilling the dependency.
 
 3. Low: `to-prompt` XML excludes body content.
    - Plan line 108 explicitly excludes optional fields and body — only name, description, and location.

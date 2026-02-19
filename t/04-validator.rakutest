@@ -2,7 +2,7 @@ use v6.d;
 use Test;
 use AIgent::Skill::Validator;
 
-plan 31;
+plan 39;
 
 # ---------------------------------------------------------------------------
 # Helper: write a SKILL.md with given YAML hash into a temp directory
@@ -249,4 +249,50 @@ if $*DISTRO.is-win {
     my @errors = validate-metadata(%meta);
     # After NFKC normalization, "ﬁlter" becomes "filter" — valid lowercase
     is @errors.elems, 0, 'NFKC-normalized name accepted (ﬁ → fi)';
+}
+
+# ===========================================================================
+# Reserved words tests (4)
+# ===========================================================================
+
+# 28. Name containing "anthropic" rejected
+{
+    my %meta = name => 'anthropic-helper', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'name containing "anthropic" rejected';
+    ok @errors.any.contains('anthropic'), 'error mentions reserved word';
+}
+
+# 29. Name containing "claude" rejected
+{
+    my %meta = name => 'my-claude-tool', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'name containing "claude" rejected';
+    ok @errors.any.contains('claude'), 'error mentions reserved word';
+}
+
+# ===========================================================================
+# XML tag rejection tests (4)
+# ===========================================================================
+
+# 30. Description containing opening XML tag rejected
+{
+    my %meta = name => 'my-skill', description => 'Uses <script>alert</script> injection';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'description with XML tags rejected';
+    ok @errors.any.contains('XML'), 'error mentions XML tags';
+}
+
+# 31. Description containing self-closing XML tag rejected
+{
+    my %meta = name => 'my-skill', description => 'An image <img src="x"/> here';
+    my @errors = validate-metadata(%meta);
+    ok @errors.elems > 0, 'description with self-closing XML tag rejected';
+}
+
+# 32. Description with bare angle brackets (not tags) accepted
+{
+    my %meta = name => 'my-skill', description => 'Values where x < 10 and y > 5';
+    my @errors = validate-metadata(%meta);
+    is @errors.elems, 0, 'description with bare angle brackets (math) accepted';
 }

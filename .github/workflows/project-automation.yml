@@ -1,0 +1,136 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened]
+
+permissions:
+  issues: read
+  pull-requests: read
+
+jobs:
+  sync-status:
+    name: Sync project status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update project board status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const projectId = 'PVT_kwHOAC1_Hc4BPgiC';
+            const statusFieldId = 'PVTSSF_lAHOAC1_Hc4BPgiCzg95Zxw';
+            const options = {
+              pending:     '6791e1cb',
+              progressing: 'c06aa5ee',
+              completed:   '37789954',
+            };
+
+            // Determine content node ID and desired status
+            const event = context.eventName;
+            const action = context.payload.action;
+            let nodeId, targetStatus;
+
+            if (event === 'issues') {
+              nodeId = context.payload.issue.node_id;
+            } else if (event === 'pull_request') {
+              nodeId = context.payload.pull_request.node_id;
+            }
+
+            if (action === 'opened') {
+              targetStatus = 'pending';
+            } else if (action === 'closed') {
+              targetStatus = 'completed';
+            } else if (action === 'reopened') {
+              targetStatus = 'progressing';
+            }
+
+            if (!nodeId || !targetStatus) {
+              console.log(`No action needed for ${event}/${action}`);
+              return;
+            }
+
+            // Find the item in the project
+            const { data } = await github.graphql(`
+              query($projectId: ID!, $nodeId: ID!) {
+                node(id: $projectId) {
+                  ... on ProjectV2 {
+                    items(first: 100) {
+                      nodes {
+                        id
+                        content {
+                          ... on Issue { id }
+                          ... on PullRequest { id }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { projectId, nodeId });
+
+            const item = data.node.items.nodes.find(
+              i => i.content && i.content.id === nodeId
+            );
+
+            if (!item) {
+              // Item not in project yet — add it first (for new issues/PRs)
+              if (action === 'opened') {
+                const addResult = await github.graphql(`
+                  mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {
+                      projectId: $projectId
+                      contentId: $contentId
+                    }) {
+                      item { id }
+                    }
+                  }
+                `, { projectId, contentId: nodeId });
+
+                const newItemId = addResult.addProjectV2ItemById.item.id;
+                console.log(`Added to project as ${newItemId}, setting status to ${targetStatus}`);
+
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: { singleSelectOptionId: $optionId }
+                    }) {
+                      projectV2Item { id }
+                    }
+                  }
+                `, {
+                  projectId,
+                  itemId: newItemId,
+                  fieldId: statusFieldId,
+                  optionId: options[targetStatus],
+                });
+              } else {
+                console.log('Item not found in project, skipping');
+              }
+              return;
+            }
+
+            // Update existing item status
+            console.log(`Updating item ${item.id} to ${targetStatus}`);
+            await github.graphql(`
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item { id }
+                }
+              }
+            `, {
+              projectId,
+              itemId: item.id,
+              fieldId: statusFieldId,
+              optionId: options[targetStatus],
+            });

@@ -13,7 +13,7 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 
 ## Status
 
-**M5 (Prompt Generation) complete.** M6 (CLI) in planning.
+**M6 (CLI) complete.** M7 (Skill Builder) in progress.
 
 See the [development plan](dev/plan.md) for full details.
 

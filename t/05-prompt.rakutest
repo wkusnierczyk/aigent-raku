@@ -3,7 +3,7 @@ use Test;
 use AIgent::Skill::Prompt;
 use AIgent::Skill::Errors;
 
-plan 10;
+plan 12;
 
 # ---------------------------------------------------------------------------
 # Helper: create a skill directory with a SKILL.md containing given fields
@@ -45,7 +45,7 @@ is xml-escape('a "b" c'), 'a &quot;b&quot; c', 'double quote escaped';
 is xml-escape('a & b < c > d "e"'), 'a &amp; b &lt; c &gt; d &quot;e&quot;', 'all special chars escaped';
 
 # ===========================================================================
-# to-prompt tests (5)
+# to-prompt tests (7)
 # ===========================================================================
 
 # 6. Empty list produces wrapper only
@@ -118,4 +118,34 @@ is xml-escape('a & b < c > d "e"'), 'a &amp; b &lt; c &gt; d &quot;e&quot;', 'al
 
     ok $xml.contains('<description>Uses &amp;, &lt;, &gt; and &quot;quotes&quot;</description>'),
         'special characters in description are XML-escaped';
+}
+
+# 11. Lowercase skill.md is preserved in <location>
+{
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-prompt");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add('lower-case');
+    $dir.mkdir unless $dir.e;
+    $dir.add('skill.md').spurt("---\nname: lower-case\ndescription: lowercase test\n---\n");
+
+    my IO::Path @dirs = $dir;
+    my $xml = to-prompt(@dirs);
+
+    ok $xml.contains("<location>{$dir.add('skill.md')}</location>"),
+        'lowercase skill.md is preserved in location';
+}
+
+# 12. Location path with escapable characters is XML-escaped
+{
+    my $base = $*TMPDIR.add("aigent-test-{$*PID}-prompt");
+    $base.mkdir unless $base.e;
+    my $dir = $base.add('a&b');
+    $dir.mkdir unless $dir.e;
+    $dir.add('SKILL.md').spurt("---\nname: 'a&b'\ndescription: test\n---\n");
+
+    my IO::Path @dirs = $dir;
+    my $xml = to-prompt(@dirs);
+
+    ok $xml.contains("<location>{xml-escape($dir.add('SKILL.md').Str)}</location>"),
+        'ampersand in path is XML-escaped in location';
 }

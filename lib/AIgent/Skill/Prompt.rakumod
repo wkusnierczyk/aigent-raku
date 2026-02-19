@@ -1,5 +1,6 @@
 unit module AIgent::Skill::Prompt;
 
+use AIgent::Skill::Errors;
 use AIgent::Skill::Parser;
 
 # ---------------------------------------------------------------------------
@@ -24,6 +25,11 @@ sub to-prompt(IO::Path @dirs --> Str) is export {
 
     for @dirs -> $dir {
         my $path = find-skill-md($dir);
+        unless $path.defined {
+            X::AIgent::Skill::Parse.new(
+                :message("No SKILL.md found in {$dir}")
+            ).throw;
+        }
         my $props = read-properties($dir);
 
         @skills.push: qq:to/SKILL/.chomp;

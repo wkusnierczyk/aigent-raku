@@ -65,8 +65,14 @@ Use this body format:
   Closes #M
 
 ## Test plan
-- [ ] Check item 1
-- [ ] Check item 2
+- [ ] Description of manual check:
+  ```bash
+  command-to-run --with-args
+  ```
+- [ ] Another check:
+  ```bash
+  another-command
+  ```
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
@@ -75,6 +81,7 @@ Rules:
 - Description on the first line, issue refs on subsequent lines (two trailing spaces for line break)
 - Each issue on its own line — `Closes #N` for auto-closing on merge
 - Never combine multiple issues on one line
+- Test plan items should use code blocks for runnable commands (renders with copy button on GitHub)
 
 ## CI: Rerun Failed Jobs with Exponential Backoff
 

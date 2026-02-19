@@ -49,3 +49,73 @@ Plan is solid. Tests-first ordering (Wave 1 tests, Wave 2 implementation) addres
 
 3. Low: issue #10 body still references old path `lib/Skills/Ref/Validator.rakumod`.
    - Plan line 149 already notes this as a post-wave fix. Confirmed.
+
+## Code review
+
+- Date/time: 2026-02-19 08:23:41 CET
+- Branch: `dev/m04`
+- Scope: code review of `main..dev/m04`
+
+### Plan review resolutions
+
+- PR1-1 (IO failures in validate): resolved — `Validator.rakumod:146-149` has a `default` CATCH that wraps all non-Parse exceptions as error strings.
+- PR1-2 (unknown-field test): resolved — test #15 (`04-validator.rakutest:141-147`) explicitly tests unknown field rejection.
+- PR1-3 (type validation tests): resolved — tests #16-18 (`04-validator.rakutest:149-168`) cover wrong YAML types for name, description, and compatibility.
+- PR1-4 (name-regex inconsistency): resolved — `Validator.rakumod:47` uses only `<:L>/<:N>/-` form.
+- PR1-5 (approximate test count): resolved — `plan 30` is exact.
+- PR2-1 (NFKC normalization): resolved — `.NFKC.Str` works; NFKC test (#26) passes with fi ligature.
+- PR2-2 (invalid chars ambiguity): resolved — underscore and space are separate tests (#9, #10).
+
+### New findings
+
+1. Low: NFKC normalization not applied to directory basename in name comparison.
+   - `Validator.rakumod:21` normalizes the name via `.NFKC.Str`.
+   - `Validator.rakumod:52` compares `$name ne $dir.basename` where `$dir.basename` is not normalized.
+   - If a directory name contains NFKC-equivalent characters (e.g., ligatures), the comparison fails even though the names are semantically equivalent.
+   - Unlikely in practice, but inconsistent with the normalization rationale.
+
+2. Low: `done-testing` is redundant with `plan 30`.
+   - `04-validator.rakutest:5` declares `plan 30` and line 241 calls `done-testing`.
+   - With an explicit plan, `done-testing` is unnecessary. Harmless but noisy.
+
+3. Low: YAML serialization helper is fragile for complex values.
+   - `04-validator.rakutest:16-22` manually serializes YAML. Values containing colons, hashes, or other YAML-special characters won't be quoted; nesting deeper than one level isn't handled.
+   - Fine for current tests (simple values), but will break if future tests add complex frontmatter.
+
+### Verification
+
+- `just lint` passes (all 8 files compile, META6.json validates).
+- `just format` passes.
+- `just test` passes (Files=4, Tests=75: errors 11, models 13, parser 21, validator 30).
+- README status updated to "M3 (Parser) complete."
+
+### Included commits
+
+- `c34ee47` Merge task/m04-validator: implement Validator module (#10)
+- `207d66a` Implement Validator module (#10)
+- `d517c77` Merge task/m04-tests: add validator tests (#11)
+- `d4a8e71` Add validator tests and API stubs (test-first for #11)
+- `3355eac` Add M4 plan and review
+
+## Code review 2
+
+- Date/time: 2026-02-19
+- Branch: `dev/m04`
+- Scope: code review of `main..dev/m04`
+
+### Findings
+
+1. Medium: `validate` can still throw on unreadable directories, violating its "never throws" contract.
+   - `lib/AIgent/Skill/Validator.rakumod:129` calls `find-skill-md($dir)` before entering the `try`/`CATCH` at `lib/AIgent/Skill/Validator.rakumod:137`.
+   - `find-skill-md` throws `X::AIgent::Skill::Parse` when directory listing fails (permission denied). Because this happens outside `try`, the exception escapes from `validate`.
+   - Repro used during review: create directory with mode `000` and call `validate($dir)`; observed thrown exception `X::AIgent::Skill::Parse: Cannot read directory ... permission denied`.
+   - Expected behavior (per plan and module comments): return `List` of error strings, not throw.
+
+### Testing gaps
+
+- No test currently covers unreadable directory permission errors in `validate`; add one in `t/04-validator.rakutest` to prevent regression.
+
+### Verification
+
+- `just test` passes (`Files=4, Tests=75`).
+- `just lint` passes.

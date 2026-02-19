@@ -237,5 +237,3 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
     # After NFKC normalization, "ﬁlter" becomes "filter" — valid lowercase
     is @errors.elems, 0, 'NFKC-normalized name accepted (ﬁ → fi)';
 }
-
-done-testing;

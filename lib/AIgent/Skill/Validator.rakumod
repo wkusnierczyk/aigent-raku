@@ -48,9 +48,12 @@ sub validate-name(%metadata, IO::Path $dir? --> List) {
         @errors.push('Name must contain only letters, digits, and hyphens');
     }
 
-    # Directory name match
-    if $dir.defined && $name ne $dir.basename {
-        @errors.push("Name '{$name}' does not match directory name '{$dir.basename}'");
+    # Directory name match (normalize basename too for consistency)
+    if $dir.defined {
+        my $dir-name = $dir.basename.NFKC.Str;
+        if $name ne $dir-name {
+            @errors.push("Name '{$name}' does not match directory name '{$dir.basename}'");
+        }
     }
 
     @errors;

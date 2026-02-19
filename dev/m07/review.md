@@ -87,3 +87,73 @@
    - Data model defines attribute `tools` (`dev/m07/plan.md:50`), CLI uses `--allowed-tools` (`dev/m07/plan.md:180`).
    - The mapping between CLI flag name and `SkillSpec` attribute is not specified.
    - Update needed: either rename the attribute to `allowed-tools` to match CLI and `SkillProperties`, or document the explicit mapping.
+
+## Code review
+
+- Date/time: 2026-02-19 12:20:18 CET
+- Branch: `dev/m07`
+- Scope: code review of `main..dev/m07`
+
+### Findings
+
+1. Medium: `assess-clarity` does not implement its own "no verb detected" rule.
+   - `lib/AIgent/Skill/Builder.rakumod:291`-`lib/AIgent/Skill/Builder.rakumod:296` labels the check as "No verb detected" but only verifies that any non-stopword exists.
+   - Noun-only purposes (for example, `"PDF documents"`) return `{ clear => True }`, which contradicts the declared deterministic criteria for unclear input.
+   - Repro used during review: `raku -Ilib -e 'use AIgent::Skill::Builder; say assess-clarity("PDF documents").raku'` returned `{:clear(Bool::True), :questions($[])}`.
+
+2. Medium: LLM fallback path can produce inconsistent output (directory name vs body title) and emits no fallback warning.
+   - `build-skill` derives the canonical name once (`lib/AIgent/Skill/Builder.rakumod:312`), but deterministic `generate-body` recomputes a name from purpose instead of using the chosen output name (`lib/AIgent/Skill/Builder.rakumod:229`).
+   - When the first LLM call succeeds (name) and later calls fail (fallback), output directory uses LLM name while body heading uses deterministic name.
+   - Repro used during review with a sequential mock LLM: output dir basename `custom-skill`, body first line `# Processing Pdf Files`.
+   - Related: fallback is silent; `build-skill` declares warning plumbing (`lib/AIgent/Skill/Builder.rakumod:309`, `lib/AIgent/Skill/Builder.rakumod:360`) but no LLM-fallback warning is ever added.
+
+### Testing gaps
+
+1. Low: no test covers noun-only "no verb" clarity behavior.
+   - Current clarity tests in `t/07-builder.rakutest:140`-`t/07-builder.rakutest:159` cover clear/too-short/ambiguous only.
+
+2. Low: no test covers partial LLM failure consistency/fallback warning behavior.
+   - Builder tests run deterministic path only; there is no mock-based test for "name from LLM, later generation fallback" consistency.
+
+### Verification
+
+- `just test` passes (`Files=7, Tests=135`).
+- `just lint` passes.
+
+## Code review 2
+
+- Date/time: 2026-02-19
+- Branch: `dev/m07` (411bcba)
+- Scope: full `main..dev/m07` diff — 5 agents, confidence-scored
+
+### CLAUDE.md compliance
+
+No issues. All conventions satisfied: kebab-case subs, `X::AIgent::Skill::Build` hierarchy, module/test paths, version in META6.json only.
+
+### Findings
+
+No issues scored >= 80 (high confidence). The following scored 75 and are worth attention:
+
+1. Medium: YAML injection in manually assembled frontmatter.
+   - `lib/AIgent/Skill/Builder.rakumod:346-348`: `license`, `compatibility`, `allowed-tools` are emitted unquoted. `description` is correctly single-quoted. Values containing `:`, `#`, `[` (e.g. `--license "MIT: Apache"`) produce invalid YAML, breaking `validate()`.
+   - Fix: apply the same `'{$val.subst("'","''", :g)}'` quoting to all scalar fields.
+
+2. Medium: `HTTP::UserAgent.post` called with JSON body as bare positional.
+   - `lib/AIgent/Skill/Builder.rakumod:51-57`: `to-json(%body)` is passed as a positional argument after header pairs. `HTTP::UserAgent.post` expects form data or named `content =>` for raw body. The JSON likely won't reach the API.
+   - Untested because all tests use `--no-llm`. Will fail at runtime in LLM mode.
+
+3. Medium: `generate-body` recomputes name without `:$llm` (confirmed in prior review).
+   - `lib/AIgent/Skill/Builder.rakumod:229` vs `lib/AIgent/Skill/Builder.rakumod:312`. Body heading diverges from directory name in LLM mode.
+
+4. Medium: LLM fallback warnings mandated by plan but not emitted (confirmed in prior review).
+   - Every `CATCH { when X::AIgent::Skill::Build { } }` block silently swallows. Plan line 183 requires warning.
+
+5. Low: plan test expectations stale.
+   - Plan specifies `"processing-pdfs"`, `"managing-databases"` but implementation produces `"processing-pdf-files"`, `"managing-database-connections"` (`.head(2)` takes 2 object words). Plan smoke test (`ls "$d"/processing-pdfs/SKILL.md`) would fail.
+
+### Items verified clean
+
+- `assess-clarity` verb-detection gap: confirmed from prior review, unchanged.
+- CLI success-path tests not checking stderr: M6 tests are inconsistent on this, so not a convention violation.
+- USAGE comment ("stdout, exit 2"): empirically correct — `say` goes to stdout.
+- `derive-name` nil guard: unnecessary, `return 'new-skill'` covers empty case.

@@ -1,0 +1,147 @@
+use v6.d;
+use Test;
+use AIgent::Skill;
+
+plan 16;
+
+# Shared fixture: a valid SKILL.md in a temp directory
+my $fixture-dir = $*TMPDIR.add("aigent-main-test-{$*PID}");
+$fixture-dir.mkdir;
+$fixture-dir.add('SKILL.md').spurt(q:to/END/);
+---
+name: test-skill
+description: A test skill for import smoke tests
+---
+# Test Skill
+
+A simple test fixture.
+END
+LEAVE { $fixture-dir.add('SKILL.md').unlink if $fixture-dir.add('SKILL.md').e; $fixture-dir.rmdir if $fixture-dir.e }
+
+# --- Exception classes (4) ---
+
+# 1. Base exception
+{
+    my $ex = X::AIgent::Skill.new(:message('base'));
+    ok $ex ~~ Exception, 'X::AIgent::Skill importable and is Exception';
+}
+
+# 2. Parse exception
+{
+    my $ex = X::AIgent::Skill::Parse.new(:message('parse'));
+    ok $ex ~~ X::AIgent::Skill, 'X::AIgent::Skill::Parse importable and inherits base';
+}
+
+# 3. Build exception
+{
+    my $ex = X::AIgent::Skill::Build.new(:message('build'));
+    ok $ex ~~ X::AIgent::Skill, 'X::AIgent::Skill::Build importable and inherits base';
+}
+
+# 4. Validation exception
+{
+    my $ex = X::AIgent::Skill::Validation.new(:message('val'), :errors(['e']));
+    ok $ex ~~ X::AIgent::Skill, 'X::AIgent::Skill::Validation importable and inherits base';
+}
+
+# --- Data model classes (3) ---
+
+# 5. SkillProperties
+{
+    my $sp = SkillProperties.new(:name('test'), :description('A test'));
+    is $sp.name, 'test', 'SkillProperties importable and constructable';
+}
+
+# 6. SkillSpec
+{
+    my $ss = SkillSpec.new(:purpose('Do stuff'));
+    is $ss.purpose, 'Do stuff', 'SkillSpec importable and constructable';
+}
+
+# 7. BuildResult
+{
+    my $sp = SkillProperties.new(:name('t'), :description('d'));
+    my $br = BuildResult.new(:properties($sp), :body('# T'), :output-dir('/tmp'.IO));
+    is $br.body, '# T', 'BuildResult importable and constructable';
+}
+
+# --- Parser functions (3) ---
+
+# 8. find-skill-md
+{
+    my $path = find-skill-md($fixture-dir);
+    ok $path.defined && $path.Str.contains('SKILL.md'),
+        'find-skill-md importable and callable';
+}
+
+# 9. parse-frontmatter
+{
+    my $content = "---\nname: test\ndescription: A test\n---\n# Body";
+    my ($meta, $body) = parse-frontmatter($content);
+    is $meta<name>, 'test', 'parse-frontmatter importable and callable';
+}
+
+# 10. read-properties
+{
+    my $sp = read-properties($fixture-dir);
+    ok $sp ~~ SkillProperties, 'read-properties importable and returns SkillProperties';
+}
+
+# --- Validator functions (2) ---
+
+# 11. validate
+{
+    my @errors = validate($fixture-dir);
+    ok @errors ~~ List, 'validate importable and callable';
+}
+
+# 12. validate-metadata
+{
+    my %meta = name => 'test', description => 'A test skill';
+    my @errors = validate-metadata(%meta);
+    ok @errors ~~ List, 'validate-metadata importable and callable';
+}
+
+# --- Prompt function (1) ---
+
+# 13. to-prompt
+{
+    my IO::Path @dirs = ($fixture-dir,);
+    my $prompt = to-prompt(@dirs);
+    ok $prompt.contains('<available_skills>'), 'to-prompt importable and callable';
+}
+
+# --- Builder functions (3) ---
+
+# 14. derive-name
+{
+    my $name = derive-name('Process PDF files');
+    ok $name.chars > 0, 'derive-name importable and callable';
+}
+
+# 15. assess-clarity
+{
+    my %result = assess-clarity('Process PDF files');
+    ok %result<clear>:exists, 'assess-clarity importable and callable';
+}
+
+# 16. build-skill
+{
+    my $dir = $*TMPDIR.add("aigent-build-test-{$*PID}");
+    LEAVE {
+        if $dir.e {
+            for $dir.dir -> $sub {
+                if $sub.d {
+                    $sub.dir>>.unlink;
+                    $sub.rmdir;
+                }
+                else { $sub.unlink }
+            }
+            $dir.rmdir;
+        }
+    }
+    my $spec = SkillSpec.new(:purpose('Analyze CSV files'));
+    my $result = build-skill($spec, $dir);
+    ok $result ~~ BuildResult && $result.output-dir.d,
+        'build-skill importable and produces output';
+}

@@ -272,13 +272,13 @@ sub generate-body(SkillSpec $spec, :$llm, Str :$name, :@warnings --> Str) is exp
     BODY
 }
 
-sub check-body-warnings(Str $body --> List) is export {
-    my @warnings;
+sub check-body-warnings(Str $body, :@warnings --> List) is export {
+    my @result = @warnings;
     my $lines = $body.lines.elems;
     if $lines > 500 {
-        @warnings.push("SKILL.md body exceeds 500 lines ({$lines} lines); consider splitting into separate files");
+        @result.push("SKILL.md body exceeds 500 lines ({$lines} lines); consider splitting into separate files");
     }
-    @warnings;
+    @result;
 }
 
 sub assess-clarity(Str $purpose, :$llm, :@warnings --> Hash) is export {
@@ -338,8 +338,7 @@ sub assess-clarity(Str $purpose, :$llm, :@warnings --> Hash) is export {
     %( clear => True, questions => @questions );
 }
 
-sub build-skill(SkillSpec $spec, IO::Path $output-dir, :$llm --> BuildResult) is export {
-    my @warnings;
+sub build-skill(SkillSpec $spec, IO::Path $output-dir, :$llm, :@warnings --> BuildResult) is export {
 
     # Determine name — sub-functions collect LLM fallback warnings
     my $name = $spec.name // derive-name($spec.purpose, :$llm, :@warnings);

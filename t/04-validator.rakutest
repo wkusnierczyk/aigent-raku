@@ -122,7 +122,7 @@ LEAVE { $test-root.dir».&{ .d ?? (try .dir».unlink; .rmdir) !! .unlink } if $t
     ok @errors.elems > 0, 'description exceeding 1024 chars rejected';
 }
 
-# 13. Compatibility: too long (>500 chars)
+# 14. Compatibility: too long (>500 chars)
 {
     my %meta = name => 'my-skill', description => 'A test skill', compatibility => 'x' x 501;
     my @errors = validate-metadata(%meta);

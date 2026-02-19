@@ -1,36 +1,36 @@
 {
-  "name": "AIgent::Skill",
-  "version": "0.0.1",
   "auth": "github:wkusnierczyk",
-  "description": "AI Agent Skill Builder and Validator",
-  "license": "MIT",
-  "source-url": "https://github.com/wkusnierczyk/aigent-skills.git",
-  "perl": "6.d",
-  "provides": {
-    "AIgent::Skill": "lib/AIgent/Skill.rakumod",
-    "AIgent::Skill::Errors": "lib/AIgent/Skill/Errors.rakumod",
-    "AIgent::Skill::Models": "lib/AIgent/Skill/Models.rakumod",
-    "AIgent::Skill::Parser": "lib/AIgent/Skill/Parser.rakumod",
-    "AIgent::Skill::Prompt": "lib/AIgent/Skill/Prompt.rakumod",
-    "AIgent::Skill::Validator": "lib/AIgent/Skill/Validator.rakumod",
-    "AIgent::Skill::Builder": "lib/AIgent/Skill/Builder.rakumod"
+  "bin": {
+    "aigent": "bin/aigent"
   },
   "depends": [
     "YAMLish",
     "JSON::Fast",
     "HTTP::UserAgent"
   ],
-  "test-depends": [
-    "Test::Async"
-  ],
-  "bin": {
-    "aigent": "bin/aigent"
+  "description": "AI Agent Skill Builder and Validator",
+  "license": "MIT",
+  "name": "AIgent::Skill",
+  "perl": "6.d",
+  "provides": {
+    "AIgent::Skill": "lib/AIgent/Skill.rakumod",
+    "AIgent::Skill::Builder": "lib/AIgent/Skill/Builder.rakumod",
+    "AIgent::Skill::Errors": "lib/AIgent/Skill/Errors.rakumod",
+    "AIgent::Skill::Models": "lib/AIgent/Skill/Models.rakumod",
+    "AIgent::Skill::Parser": "lib/AIgent/Skill/Parser.rakumod",
+    "AIgent::Skill::Prompt": "lib/AIgent/Skill/Prompt.rakumod",
+    "AIgent::Skill::Validator": "lib/AIgent/Skill/Validator.rakumod"
   },
+  "source-url": "https://github.com/wkusnierczyk/aigent-skills.git",
   "tags": [
     "raku",
     "ai",
     "agentic-ai",
     "agent-skills",
     "skills"
-  ]
+  ],
+  "test-depends": [
+    "Test::Async"
+  ],
+  "version": "0.1.0"
 }

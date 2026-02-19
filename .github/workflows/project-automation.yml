@@ -54,7 +54,7 @@ jobs:
 
             // Find the item in the project
             const { data } = await github.graphql(`
-              query($projectId: ID!, $nodeId: ID!) {
+              query($projectId: ID!) {
                 node(id: $projectId) {
                   ... on ProjectV2 {
                     items(first: 100) {

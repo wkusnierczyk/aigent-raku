@@ -1,6 +1,18 @@
-# `aigent`: AI Agent Skill Builder and Validator
+<table>
+  <tr>
+    <td>
+      <img src="https://raw.githubusercontent.com/wkusnierczyk/aigent-skills/main/graphics/aigent.png" alt="logo" width="300" />
+    </td>
+    <td>
+      <p><strong>AIgent::Skill</strong>:
+      A Raku library and CLI tool for managing AI agent skill definitions.</p>
+      <p>Validates, parses, and generates prompts from skill metadata stored in <code>SKILL.md</code> files with YAML frontmatter. Also provides a skill builder for creating new skills from natural language specifications.</p>
+    </td>
+  </tr>
+</table>
 
-A library and CLI tool for managing AI agent skill definitions. Validates, parses, and generates prompts from skill metadata stored in `SKILL.md` files with YAML frontmatter. Also provides a skill builder for creating new skills from natural language specifications.
+[![CI](https://github.com/wkusnierczyk/aigent-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/wkusnierczyk/aigent-skills/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 
@@ -8,6 +20,7 @@ A library and CLI tool for managing AI agent skill definitions. Validates, parse
 - [Installation](#installation)
 - [Usage](#usage)
 - [SKILL.md Format](#skillmd-format)
+- [Spec Compliance](#spec-compliance)
 - [API Reference](#api-reference)
 - [Development](#development)
 - [CI/CD Workflows](#cicd-workflows)
@@ -213,11 +226,11 @@ Use this skill when:
 
 ### Validation rules
 
-- `name` and `description` are required
-- `name` must be a string (not a number, not empty)
-- `description` must be at least 10 characters
-- No [Anthropic reserved words](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) as field names
-- No XML-like tags (`<tag>`) in field values
+- `name` and `description` are required and non-empty
+- `name`: lowercase letters, digits, and hyphens only; max 64 chars
+- `name`: must not contain [reserved words](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) (`anthropic`, `claude`)
+- `description`: min 10, max 1024 chars; no XML-like tags (`<tag>`)
+- Unknown frontmatter fields are rejected
 
 ## Spec Compliance
 
@@ -234,13 +247,15 @@ The validator is **fully compliant** with the [Anthropic agent skill best practi
 | Name: Unicode normalization (NFKC) | — | ✅ | ❌ |
 | Name: matches directory name | — | ✅ | ✅ |
 | Description required | ✅ | ✅ | ✅ |
+| Description ≥ 10 chars | — | ✅ | ❌ |
 | Description ≤ 1024 chars | ✅ | ✅ | ✅ |
 | Description: no XML tags | ✅ | ✅ | ❌ |
 | Compatibility ≤ 500 chars | ✅ | ✅ | ✅ |
 | Unknown fields rejected | — | ✅ | ❌ |
-| Body ≤ 500 lines warning | ✅ | ✅ | ❌ |
+| Body ≤ 500 lines warning | ✅ | ✅ ² | ❌ |
 
 ¹ Implicitly rejected: name character class (`[a-z0-9-]`) does not permit `<` or `>`.
+² Checked by the builder (`check-body-warnings`), not by `validate`.
 
 ## API Reference
 
@@ -269,7 +284,7 @@ The validator is **fully compliant** with the [Anthropic agent skill best practi
 | `assess-clarity(Str $purpose)` | Builder | Assess if purpose is clear enough |
 | `build-skill(SkillSpec $spec, IO::Path $dir)` | Builder | Full build pipeline |
 
-All builder functions accept optional `:$llm` (LLMClient) and `:@warnings` named parameters.
+All builder functions accept optional `:@warnings` named parameters. All except `check-body-warnings` also accept `:$llm` (LLMClient).
 
 ### Exceptions
 

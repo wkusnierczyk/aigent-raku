@@ -55,3 +55,80 @@
 - Re-export list matches actual M7 implementation exports (no stale or missing symbols).
 - Implementation order (lines 261-266): sensible — main module first, version bump last.
 - Smoke test uses `processing-pdf-files` (line 282), matching actual `derive-name` output (not the stale plan value `processing-pdfs`).
+
+## Code review
+
+- Date/time: 2026-02-19 14:45:49 CET
+- Branch: `dev/m08`
+- Scope: code review of `main..dev/m08`
+
+### Findings
+
+1. Medium: `AIgent::Skill` module namespace is no longer declared.
+   - `lib/AIgent/Skill.rakumod:1` starts with imports and `EXPORT` but no `unit module AIgent::Skill;` declaration.
+   - Practical impact: `use AIgent::Skill` works for symbol imports, but the module type object is missing (`::("AIgent::Skill")` resolves undefined), which can break reflection/introspection use cases and is inconsistent with other compunits.
+
+2. Medium: README validation section documents behaviors the validator does not implement.
+   - `README.md:218` says description must be at least 10 characters; validator only enforces non-empty + max length.
+   - `README.md:219` says reserved words are forbidden as field names; implementation forbids reserved words in the **skill name value**.
+   - `README.md:241` marks "Body ≤ 500 lines warning" as validator/spec-compliance behavior; this warning is currently builder-only (`check-body-warnings`) and not part of `validate`.
+
+3. Low: README API contract claims unsupported builder parameters.
+   - `README.md:272` says all builder functions accept optional `:@warnings`.
+   - Current builder APIs expose `:$llm`; no exported function accepts `:@warnings`.
+
+### Verification
+
+- `just test` passes (`Files=8, Tests=152`).
+- `just lint` passes.
+
+## Code review 2
+
+- Date/time: 2026-02-19
+- Branch: `dev/m08` (a57fa6c)
+- Scope: code review of `main..dev/m08`
+
+### Findings
+
+1. Low: README reserved-words link points to wrong page.
+   - `README.md:219`: "No [Anthropic reserved words](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) as field names"
+   - URL is the prompt caching docs, not reserved words. And the actual rule is about the name *value* containing "anthropic"/"claude", not about field names.
+
+2. Low: `done-testing` redundant after `plan 16`.
+   - `t/08-main.rakutest:149`: `done-testing` is a no-op when `plan N` is declared (line 5).
+
+### Plan review resolutions
+
+| Plan finding | Status |
+|---|---|
+| PR1-1: re-export mechanism broken | Fixed: `sub EXPORT()` with explicit symbol map. `unit module` dropped as required. |
+| PR1-2: test count stale | Resolved: 152 actual (136 M1-M7 + 16 M8). The M7 baseline was 135 on `dev/m07` but 136 after merge to main. |
+| PR1-3: empty release notes | Fixed: guard added (`if [ ! -s release_notes.md ]; then ... exit 1`). |
+| PR1-4: CI matrix docs drift | Fixed: README now documents Ubuntu + macOS only with Raku/REA#7 note. |
+| PR2-1: re-export confirmed broken | Fixed (same as PR1-1). |
+| PR2-2: "Task branch" wording | Fixed in plan: `dev/m08/plan.md:7` now says "Branch `dev/m08`". |
+| PR2-3: issue #24 scope | Documented in plan: explicit note about deferred ecosystem publishing. |
+
+### Items verified clean
+
+- `sub EXPORT()` maps all 22 symbols (4 exceptions, 3 classes, 9 subs from Parser/Validator/Prompt, 6 subs from Builder). Matches the plan's re-export list exactly.
+- Release workflow: correct `actions/checkout@v4`, `Raku/setup-raku@v1`, `softprops/action-gh-release@v2`.
+- CHANGES.md: format matches awk extraction pattern.
+- META6.json: version bumped to 0.1.0, keys reordered alphabetically, `provides` includes all modules.
+- Blog post (`posts/raku-windows-ci-max-path.md`): informational, documents Windows CI investigation. No code impact.
+- Test fixture cleanup: both LEAVE blocks handle their temp dirs correctly.
+
+### Code review resolutions
+
+| Code finding | Status |
+|---|---|
+| CR1-1: module namespace missing | Fixed: added `module AIgent::Skill {}` block declaration alongside `sub EXPORT()`. |
+| CR1-2: README validation rules inaccurate | Fixed: added description ≥10 chars check to validator (code matches spec), updated README and spec compliance table. |
+| CR1-3: README claims unsupported `:@warnings` | Fixed: added `:@warnings` to `check-body-warnings` and `build-skill`. README note clarified (`check-body-warnings` doesn't accept `:$llm`). |
+| CR2-1: reserved-words link wrong | Fixed: URL updated to best practices page, description corrected. |
+| CR2-2: redundant `done-testing` | Fixed: removed from `t/08-main.rakutest`. |
+
+### Verification
+
+- `just test` passes (`Files=8, Tests=153`).
+- `just lint` passes.

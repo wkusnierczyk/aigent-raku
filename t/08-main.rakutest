@@ -97,7 +97,7 @@ LEAVE { $fixture-dir.add('SKILL.md').unlink if $fixture-dir.add('SKILL.md').e; $
 
 # 12. validate-metadata
 {
-    my %meta = name => 'test', description => 'A test';
+    my %meta = name => 'test', description => 'A test skill';
     my @errors = validate-metadata(%meta);
     ok @errors ~~ List, 'validate-metadata importable and callable';
 }
@@ -145,5 +145,3 @@ LEAVE { $fixture-dir.add('SKILL.md').unlink if $fixture-dir.add('SKILL.md').e; $
     ok $result ~~ BuildResult && $result.output-dir.d,
         'build-skill importable and produces output';
 }
-
-done-testing;

@@ -5,6 +5,8 @@ use AIgent::Skill::Validator;
 use AIgent::Skill::Prompt;
 use AIgent::Skill::Builder;
 
+module AIgent::Skill {}
+
 sub EXPORT() {
     %(
         # Exceptions

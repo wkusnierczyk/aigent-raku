@@ -1,3 +1,5 @@
+unit module AIgent::Skill::Parser;
+
 use YAMLish;
 use AIgent::Skill::Errors;
 use AIgent::Skill::Models;
@@ -5,28 +7,39 @@ use AIgent::Skill::Models;
 sub find-skill-md(IO::Path $dir) is export {
     # List actual filenames on disk to handle case-insensitive filesystems
     # (macOS HFS+/APFS treat SKILL.md and skill.md as the same file)
-    my @entries = $dir.dir.map(*.basename);
+    my @entries;
+    try {
+        @entries = $dir.dir.map(*.basename);
+        CATCH {
+            default {
+                X::AIgent::Skill::Parse.new(
+                    :message("Cannot read directory {$dir}: {.message}")
+                ).throw;
+            }
+        }
+    }
     return $dir.add('SKILL.md') if 'SKILL.md' ∈ @entries;
     return $dir.add('skill.md') if 'skill.md' ∈ @entries;
     Nil;
 }
 
 sub parse-frontmatter(Str $content --> List) is export {
-    my @lines = $content.split("\n", :v);
+    # Normalize CRLF to LF so Windows-generated files parse correctly
+    my $normalized = $content.subst("\r\n", "\n", :g);
 
-    # Opening delimiter: content must start with ---
-    unless $content.starts-with('---') && ($content.chars == 3 || $content.substr(3, 1) eq "\n") {
+    my @lines = $normalized.lines;
+
+    # Opening delimiter: first line must be exactly "---"
+    unless @lines && @lines[0] eq '---' {
         X::AIgent::Skill::Parse.new(
             :message('SKILL.md must start with YAML frontmatter (---)')
         ).throw;
     }
 
     # Find closing delimiter: a line containing only "---"
-    # Work with plain lines (no newline tracking needed for search)
-    my @plain-lines = $content.lines;
     my $close-idx;
-    for 1 ..^ @plain-lines.elems -> $i {
-        if @plain-lines[$i] eq '---' {
+    for 1 ..^ @lines.elems -> $i {
+        if @lines[$i] eq '---' {
             $close-idx = $i;
             last;
         }
@@ -39,7 +52,7 @@ sub parse-frontmatter(Str $content --> List) is export {
     }
 
     # Extract YAML text between delimiters
-    my $yaml-text = @plain-lines[1 ..^ $close-idx].join("\n");
+    my $yaml-text = @lines[1 ..^ $close-idx].join("\n");
 
     # Parse YAML
     my $parsed;
@@ -64,9 +77,9 @@ sub parse-frontmatter(Str $content --> List) is export {
     my %metadata = $parsed;
 
     # Body is everything after the closing delimiter line
-    my $body = @plain-lines[$close-idx + 1 .. *].join("\n");
+    my $body = @lines[$close-idx + 1 .. *].join("\n");
     # If original content ended with newline and there's body content, preserve trailing newline
-    $body ~= "\n" if $body.chars > 0 && $content.ends-with("\n");
+    $body ~= "\n" if $body.chars > 0 && $normalized.ends-with("\n");
 
     (%metadata, $body);
 }
@@ -80,11 +93,22 @@ sub read-properties(IO::Path $dir --> SkillProperties) is export {
         ).throw;
     }
 
-    # Read and parse
-    my $content = $path.slurp;
+    # Read and parse — wrap IO failures in Parse exceptions
+    my $content;
+    try {
+        $content = $path.slurp;
+        CATCH {
+            default {
+                X::AIgent::Skill::Parse.new(
+                    :message("Cannot read {$path}: {.message}")
+                ).throw;
+            }
+        }
+    }
+
     my @result = parse-frontmatter($content);
     my %metadata = @result[0];
-    my $body = @result[1];
+    # @result[1] is the body — intentionally discarded (not part of SkillProperties)
 
     # Validate required fields
     my @errors;
@@ -102,10 +126,14 @@ sub read-properties(IO::Path $dir --> SkillProperties) is export {
     my %known-keys = set <name description license compatibility allowed-tools metadata>;
     my %extra = %metadata.grep({ .key ∉ %known-keys }).Hash;
 
-    # Metadata comes from explicit 'metadata' key in frontmatter, merged with unknown keys
+    # Metadata: explicit 'metadata' key takes priority, unknown top-level keys merged in
     my %meta-hash;
-    %meta-hash.append(%metadata<metadata>.pairs) if %metadata<metadata>:exists && %metadata<metadata> ~~ Associative;
-    %meta-hash.append(%extra.pairs) if %extra;
+    if %metadata<metadata>:exists && %metadata<metadata> ~~ Associative {
+        %meta-hash = %metadata<metadata>;
+    }
+    for %extra.kv -> $k, $v {
+        %meta-hash{$k} = $v unless %meta-hash{$k}:exists;
+    }
 
     SkillProperties.new(
         name         => %metadata<name>,

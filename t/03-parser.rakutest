@@ -45,6 +45,10 @@ name: test
 }
 
 {
+    # On case-insensitive filesystems (macOS APFS), creating both SKILL.md and
+    # skill.md targets the same file — this test is only meaningful on
+    # case-sensitive filesystems (Linux). It still passes on macOS because
+    # SKILL.md is the surviving filename either way.
     my $dir = make-tmpdir;
     LEAVE { $dir.dir>>.unlink; $dir.rmdir }
 

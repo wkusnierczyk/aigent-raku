@@ -8,6 +8,7 @@ use AIgent::Skill::Parser;
 # ---------------------------------------------------------------------------
 
 my constant %KNOWN-KEYS = set <name description license compatibility allowed-tools metadata>;
+my constant @RESERVED-WORDS = <anthropic claude>;
 
 sub validate-name(%metadata, IO::Path $dir? --> List) {
     my @errors;
@@ -48,6 +49,13 @@ sub validate-name(%metadata, IO::Path $dir? --> List) {
         @errors.push('Name must contain only letters, digits, and hyphens');
     }
 
+    # Reserved words (Anthropic spec: name cannot contain "anthropic" or "claude")
+    for @RESERVED-WORDS -> $word {
+        if $name.contains($word) {
+            @errors.push("Name must not contain reserved word: '$word'");
+        }
+    }
+
     # Directory name match (normalize basename too for consistency)
     if $dir.defined {
         my $dir-name = $dir.basename.NFKC.Str;
@@ -69,6 +77,11 @@ sub validate-description(%metadata --> List) {
 
     if %metadata<description>.chars > 1024 {
         @errors.push("Description exceeds maximum length of 1024 characters ({%metadata<description>.chars} given)");
+    }
+
+    # No XML tags (Anthropic spec)
+    if %metadata<description> ~~ / '<' '/'? <[a..zA..Z]> <-[>]>* '>' / {
+        @errors.push('Description must not contain XML tags');
     }
 
     @errors;

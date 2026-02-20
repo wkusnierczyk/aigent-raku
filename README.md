@@ -14,6 +14,9 @@
 [![CI](https://github.com/wkusnierczyk/aigent-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/wkusnierczyk/aigent-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Note**
+> See [wkusnierczyk/aigent](https://github.com/wkusnierczyk/aigent) for a more comprehensive Rust implementation of `aigent`.
+
 ## Table of Contents
 
 - [Spec Compliance](#spec-compliance)

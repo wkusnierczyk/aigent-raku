@@ -154,6 +154,17 @@ bump-major:
     major=$((major + 1))
     just version-set "$major.0.0"
 
+# ─── Cleaning ────────────────────────────────────────────────────────
+
+# Remove build artifacts, precomp caches, and test outputs
+clean:
+    #!/usr/bin/env bash
+    rm -rf .precomp lib/.precomp
+    rm -rf .cache dist
+    rm -rf extracting-data
+    rm -f *.rakutest.out
+    echo "Cleaned."
+
 # ─── Composite ────────────────────────────────────────────────────────
 
 # Full pre-push check: format + lint + test
